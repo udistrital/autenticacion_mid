@@ -1,0 +1,65 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "beego Test API",
+        "description": "beego has a very cool tools to autogenerate documents for your API",
+        "version": "1.0.0",
+        "termsOfService": "http://beego.me/",
+        "contact": {
+            "email": "astaxie@gmail.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        }
+    },
+    "basePath": "/v1",
+    "paths": {
+        "/token/emailToken": {
+            "post": {
+                "tags": [
+                    "token"
+                ],
+                "description": "Recibe el correo electrónico del usuario desde la autenticación",
+                "operationId": "TokenController.GetEmail",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "email",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Token"
+                        }
+                    },
+                    "403": {
+                        "description": "is empty"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.Token": {
+            "title": "Token",
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "token",
+            "description": "TokenController operations for Token\n"
+        }
+    ]
+}
