@@ -57,7 +57,7 @@ definitions:
     type: object
     properties:
       Usuario:
-        $ref: '#/definitions/807.0xc00034a150.false'
+        $ref: '#/definitions/807.0xc000384c90.false'
   models.Token:
     title: Token
     type: object
