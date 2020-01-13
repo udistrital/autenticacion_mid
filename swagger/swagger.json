@@ -43,13 +43,57 @@
                     }
                 }
             }
+        },
+        "/token/userRol": {
+            "post": {
+                "tags": [
+                    "token"
+                ],
+                "description": "Recibe el usuario y devuelve el rol",
+                "operationId": "TokenController.GetRol",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "email",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.RolesUsuario"
+                        }
+                    },
+                    "403": {
+                        "description": "is empty"
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        ".false": {
+            "type": "object"
+        },
+        "models.RolesUsuario": {
+            "title": "RolesUsuario",
+            "type": "object",
+            "properties": {
+                "Usuario": {
+                    "$ref": "#/definitions/807.0xc00027db90.false"
+                }
+            }
+        },
         "models.Token": {
             "title": "Token",
             "type": "object",
             "properties": {
+                "User": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 }
