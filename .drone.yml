@@ -19,7 +19,7 @@ steps:
       - master
       - test
       event:
-      - push
+      - push 
 
   - name: publish_dockerhub  
     image: plugins/docker
@@ -61,10 +61,10 @@ steps:
      - container_name=${DRONE_REPO##udistrital/}
      - apt-get update
      - apt-get install unzip
-     - wget https://github.com/Autodesk/go-awsecs/releases/download/v1.0/update-aws-ecs-service-linux-amd64.zip
+     - wget https://github.com/Autodesk/go-awsecs/releases/download/v1.1/update-aws-ecs-service-linux-amd64.zip
      - unzip update-aws-ecs-service-linux-amd64.zip -d /go/bin
      - AWS_ACCESS_KEY_ID=$${AWS_ACCESS_KEY_ID} AWS_SECRET_ACCESS_KEY=$${AWS_SECRET_ACCESS_KEY} AWS_REGION=$AWS_REGION
-       $GOPATH/bin/update-aws-ecs-service -cluster $CLUSTER -service $SERVICE -container-image $container_name=$MYCONTAINER    
+       $GOPATH/bin/update-aws-ecs-service -cluster $CLUSTER -service $SERVICE -container-image $container_name=$MYCONTAINER       
     when:
       branch:
       - test
@@ -83,10 +83,10 @@ steps:
       message: >
         {{#success build.status}}
           <code>{{repo.owner}}/{{repo.name}}</code> <a href="{{build.link}}">SUCCESS</a> 
-          <code>{{commit.branch}}</code>@<a href="{{commit.link}}">{{truncate commit.sha 7}}</a><code> By:{{commit.author}} &#128526 </code>
+          <code>{{commit.branch}}</code>@<a href="{{commit.link}}">{{truncate commit.sha 7}}</a><code> By:{{commit.author}}</code>
         {{else}}
           <code>{{repo.owner}}/{{repo.name}}</code> <a href="{{build.link}}">FAILURE</a>
-          <code>{{commit.branch}}</code>@<a href="{{commit.link}}">{{truncate commit.sha 7}}</a><code> By:{{commit.author}} &#129324 </code>
+          <code>{{commit.branch}}</code>@<a href="{{commit.link}}">{{truncate commit.sha 7}}</a><code> By:{{commit.author}}</code>
         {{/success}}
     when:
       branch:
