@@ -57,8 +57,8 @@ type AtributosToken struct {
 type UserInfo struct {
 	Codigo string   `json:"Codigo"`
 	Estado string   `json:"Estado"`
-	Email  string   `json:"Email"`
-	Rol    []string `json:"Rol"`
+	Email  string   `json:"email"`
+	Rol    []string `json:"rol"`
 }
 
 type returnInfo struct {
