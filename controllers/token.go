@@ -78,7 +78,9 @@ func (c *TokenController) GetRol() {
 		if response, err := models.GetInfoByEmail(&v); err == nil {
 			mapa2, _ := formatdata.ToMap(response, "json")
 			for k, v := range mapa2 {
+
 				res[k] = v
+				fmt.Println("res: ", res[k], ": ", v)
 			}
 
 		} else {

@@ -4,6 +4,7 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/plugins/cors"
 	_ "github.com/udistrital/autenticacion_mid/routers"
+	apistatus "github.com/udistrital/utils_oas/apiStatusLib"
 )
 
 func main() {
@@ -19,5 +20,6 @@ func main() {
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin"},
 		AllowCredentials: true,
 	}))
+	apistatus.Init()
 	beego.Run()
 }
