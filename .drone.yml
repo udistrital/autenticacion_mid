@@ -19,27 +19,6 @@ steps:
       - master
       - test
       event:
-      - push 
-
-  - name: run_sonar_scanner
-    image: openjdk:8-alpine
-    commands:
-     - export RELEASE=4.2.0.1873
-     - apk add --no-cache  curl grep sed unzip nodejs npm
-     - curl --insecure -o ./sonarscanner.zip -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$RELEASE-linux.zip
-     - unzip sonarscanner.zip
-     - rm sonarscanner.zip
-     - rm -rf sonar-scanner-$RELEASE-linux/jre
-     - sed -i 's/use_embedded_jre=true/use_embedded_jre=false/g' ./sonar-scanner-$RELEASE-linux/bin/sonar-scanner
-     - export PATH=$PATH:/go/src/github.com/udistrital/${DRONE_REPO##udistrital/}/sonar-scanner-$RELEASE-linux/bin
-     - cp sonar-project.properties ./sonar-scanner-$RELEASE-linux/conf/sonar-scanner.properties
-     - sonar-scanner
-    when:
-      branch:
-      - dev
-      - test
-      - master
-      event:
       - push
 
   - name: publish_dockerhub  
@@ -82,10 +61,10 @@ steps:
      - container_name=${DRONE_REPO##udistrital/}
      - apt-get update
      - apt-get install unzip
-     - wget https://github.com/Autodesk/go-awsecs/releases/download/v1.1/update-aws-ecs-service-linux-amd64.zip
+     - wget https://github.com/Autodesk/go-awsecs/releases/download/v1.0/update-aws-ecs-service-linux-amd64.zip
      - unzip update-aws-ecs-service-linux-amd64.zip -d /go/bin
      - AWS_ACCESS_KEY_ID=$${AWS_ACCESS_KEY_ID} AWS_SECRET_ACCESS_KEY=$${AWS_SECRET_ACCESS_KEY} AWS_REGION=$AWS_REGION
-       $GOPATH/bin/update-aws-ecs-service -cluster $CLUSTER -service $SERVICE -container-image $container_name=$MYCONTAINER       
+       $GOPATH/bin/update-aws-ecs-service -cluster $CLUSTER -service $SERVICE -container-image $container_name=$MYCONTAINER    
     when:
       branch:
       - test
@@ -104,10 +83,10 @@ steps:
       message: >
         {{#success build.status}}
           <code>{{repo.owner}}/{{repo.name}}</code> <a href="{{build.link}}">SUCCESS</a> 
-          <code>{{commit.branch}}</code>@<a href="{{commit.link}}">{{truncate commit.sha 7}}</a><code> By:{{commit.author}}</code>
+          <code>{{commit.branch}}</code>@<a href="{{commit.link}}">{{truncate commit.sha 7}}</a><code> By:{{commit.author}} &#128526 </code>
         {{else}}
           <code>{{repo.owner}}/{{repo.name}}</code> <a href="{{build.link}}">FAILURE</a>
-          <code>{{commit.branch}}</code>@<a href="{{commit.link}}">{{truncate commit.sha 7}}</a><code> By:{{commit.author}}</code>
+          <code>{{commit.branch}}</code>@<a href="{{commit.link}}">{{truncate commit.sha 7}}</a><code> By:{{commit.author}} &#129324 </code>
         {{/success}}
     when:
       branch:
@@ -116,4 +95,3 @@ steps:
       status:
       - failure
       - success
-      
