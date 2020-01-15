@@ -38,8 +38,8 @@
                             "$ref": "#/definitions/models.Token"
                         }
                     },
-                    "403": {
-                        "description": "is empty"
+                    "404": {
+                        "description": "not found resource"
                     }
                 }
             }
@@ -53,37 +53,59 @@
                 "operationId": "TokenController.GetRol",
                 "parameters": [
                     {
-                        "in": "path",
-                        "name": "email",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Concepto_nomina_por_persona content",
+                        "schema": {
+                            "$ref": "#/definitions/.true"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/models.RolesUsuario"
+                            "$ref": "#/definitions/models.Payload"
                         }
                     },
-                    "403": {
-                        "description": "is empty"
+                    "404": {
+                        "description": "not found resource"
                     }
                 }
             }
         }
     },
     "definitions": {
-        ".false": {
+        ".true": {
             "type": "object"
         },
-        "models.RolesUsuario": {
-            "title": "RolesUsuario",
+        "models.Payload": {
+            "title": "Payload",
             "type": "object",
             "properties": {
-                "Usuario": {
-                    "$ref": "#/definitions/807.0xc0003998f0.false"
+                "Codigo": {
+                    "type": "string"
+                },
+                "Estado": {
+                    "type": "string"
+                },
+                "FamilyName": {
+                    "type": "string"
+                },
+                "documento": {
+                    "type": "string"
+                },
+                "documento_compuesto": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -91,9 +113,6 @@
             "title": "Token",
             "type": "object",
             "properties": {
-                "User": {
-                    "type": "string"
-                },
                 "email": {
                     "type": "string"
                 }
