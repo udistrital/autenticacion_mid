@@ -12,7 +12,11 @@ import (
 // Token structure
 type Token struct {
 	Email string `json:"email"`
-	User  string `json:"User"`
+}
+
+// UserName structure
+type UserName struct {
+	User string `json:"user"`
 }
 
 //Payload structure
@@ -22,6 +26,8 @@ type Payload struct {
 	DocumentoCompuesto string   `json:"documento_compuesto"`
 	Email              string   `json:"email"`
 	FamilyName         string   `json:"FamilyName"`
+	Codigo             string   `json:"Codigo"`
+	Estado             string   `json:"Estado"`
 }
 
 // EstudianteInfo structure
@@ -92,52 +98,71 @@ func GetInfoByEmail(m *Token) (u *UserInfo, err error) {
 }
 
 // GetRolesByUser ...
-func GetRolesByUser(m *Token) (roles *Payload, err error) {
+func GetRolesByUser(user UserName) (roles *Payload, outputError map[string]interface{}) {
 	var RolesUsuario AtributosToken
+	var estudianteInfo EstudianteInfo
 	var familyName string
 	var documento string
 	var mail string
 	var documentoCompuesto string
 	userRoles := []string{}
-	fmt.Println(beego.AppConfig.String("GetRoleByUser") + m.User)
-	r := httplib.Get(beego.AppConfig.String("GetRoleByUser") + m.User)
-	r.Header("Accept", "application/json")
-	if err = r.ToJSON(&RolesUsuario); err == nil {
-		for k, v := range RolesUsuario.Usuario.Atributos {
 
-			if v.Atributo == "role" {
-				roles := strings.Split(v.Valor, ",")
-				for _, v := range roles {
-					userRoles = append(userRoles, v)
+	fmt.Println(beego.AppConfig.String("GetRoleByUser") + user.User)
+
+	r := httplib.Get(beego.AppConfig.String("GetRoleByUser") + user.User)
+	r.Header("Accept", "application/json")
+	if err := r.ToJSON(&RolesUsuario); err == nil {
+		if RolesUsuario.Usuario.Atributos != nil {
+			for k, v := range RolesUsuario.Usuario.Atributos {
+				switch v.Atributo {
+				case "role":
+					roles := strings.Split(v.Valor, ",")
+					for _, v := range roles {
+						userRoles = append(userRoles, v)
+					}
+				case "sn":
+					familyName = v.Valor
+				case "documento":
+					documento = v.Valor
+
+				case "documento_compuesto":
+					documentoCompuesto = v.Valor
+				case "mail":
+					mail = v.Valor
+				}
+
+				fmt.Println(k, v)
+			}
+			payload := &Payload{
+				Role:               userRoles,
+				DocumentoCompuesto: documentoCompuesto,
+				Documento:          documento,
+				Email:              mail,
+				FamilyName:         familyName,
+			}
+
+			r2 := httplib.Get(beego.AppConfig.String("GetCodeByEmailStudentService") + mail)
+			r2.Header("Accept", "application/json")
+			if err := r2.ToJSON(&estudianteInfo); err == nil {
+				if estudianteInfo.EstudianteCollection.Estudiante != nil {
+					userRoles = append(userRoles, "ESTUDIANTE")
+					payload.Codigo = estudianteInfo.EstudianteCollection.Estudiante[0].Codigo
+					payload.Estado = estudianteInfo.EstudianteCollection.Estudiante[0].Estado
+					payload.Role = userRoles
 				}
 			}
-			if v.Atributo == "sn" {
-				familyName = v.Valor
-			}
-			if v.Atributo == "documento" {
-				documento = v.Valor
-			}
-			if v.Atributo == "mail" {
-				mail = v.Valor
-			}
-			if v.Atributo == "documento_compuesto" {
-				documentoCompuesto = v.Valor
-			}
 
-			fmt.Println(k, v)
-		}
-		payload := &Payload{
-			Role:               userRoles,
-			DocumentoCompuesto: documentoCompuesto,
-			Documento:          documento,
-			Email:              mail,
-			FamilyName:         familyName,
+			return payload, nil
+		} else {
+			outputError = map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": "usuario no registrado"}
+
+			return nil, outputError
 		}
 
-		return payload, err
+	} else {
+		outputError = map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": err}
+		return nil, outputError
 	}
-
-	return nil, err
 	// if err := request.GetJson(beego.AppConfig.String("GetRoleByUser")+m.User, RolesUsuario); err == nil {
 
 	// }
