@@ -14,6 +14,11 @@ type Token struct {
 	Email string `json:"email"`
 }
 
+// UserName structure
+type UserName struct {
+	User string `json:"user"`
+}
+
 //Payload structure
 type Payload struct {
 	Role               []string `json:"role"`
@@ -93,7 +98,7 @@ func GetInfoByEmail(m *Token) (u *UserInfo, err error) {
 }
 
 // GetRolesByUser ...
-func GetRolesByUser(user string) (roles *Payload, outputError map[string]interface{}) {
+func GetRolesByUser(user UserName) (roles *Payload, outputError map[string]interface{}) {
 	var RolesUsuario AtributosToken
 	var estudianteInfo EstudianteInfo
 	var familyName string
@@ -102,9 +107,9 @@ func GetRolesByUser(user string) (roles *Payload, outputError map[string]interfa
 	var documentoCompuesto string
 	userRoles := []string{}
 
-	fmt.Println(beego.AppConfig.String("GetRoleByUser") + user)
+	fmt.Println(beego.AppConfig.String("GetRoleByUser") + user.User)
 
-	r := httplib.Get(beego.AppConfig.String("GetRoleByUser") + user)
+	r := httplib.Get(beego.AppConfig.String("GetRoleByUser") + user.User)
 	r.Header("Accept", "application/json")
 	if err := r.ToJSON(&RolesUsuario); err == nil {
 		if RolesUsuario.Usuario.Atributos != nil {

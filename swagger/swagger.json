@@ -49,15 +49,16 @@
                 "tags": [
                     "token"
                 ],
-                "description": "Recibe el usuario y devuelve el rol",
+                "description": "Recibe el usuario y devuelve información detallada del usuario",
                 "operationId": "TokenController.GetRol",
                 "parameters": [
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "body for Concepto_nomina_por_persona content",
+                        "description": "Usuario registrado en wso2",
+                        "required": true,
                         "schema": {
-                            "$ref": "#/definitions/.true"
+                            "$ref": "#/definitions/models.UserName"
                         }
                     }
                 ],
@@ -76,9 +77,6 @@
         }
     },
     "definitions": {
-        ".true": {
-            "type": "object"
-        },
         "models.Payload": {
             "title": "Payload",
             "type": "object",
@@ -114,6 +112,15 @@
             "type": "object",
             "properties": {
                 "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.UserName": {
+            "title": "UserName",
+            "type": "object",
+            "properties": {
+                "user": {
                     "type": "string"
                 }
             }

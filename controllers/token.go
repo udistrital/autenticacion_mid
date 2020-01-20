@@ -44,14 +44,14 @@ func (c *TokenController) GetEmail() {
 
 // GetRol ...
 // @Title GetRol
-// @Description Recibe el usuario y devuelve el rol
-// @Param	body		body 	  	true		"body for Concepto_nomina_por_persona content"
+// @Description Recibe el usuario y devuelve información detallada del usuario
+// @Param	body	body 	models.UserName  	true		"Usuario registrado en wso2"
 // @Success 200 {object} models.Payload
 // @Failure 404 not found resource
 // @router /userRol [post]
 func (c *TokenController) GetRol() {
 	var (
-		v string
+		v models.UserName
 	)
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		beego.Info("V: ", v)
