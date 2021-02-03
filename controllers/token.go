@@ -69,5 +69,34 @@ func (c *TokenController) GetRol() {
 	}
 
 	c.ServeJSON()
+}
+
+// AddRol ...
+// @Title AddRol
+// @Description Recibe el usuario y el rol
+// @Param	body	body 	models.UpdateRol  true	"Usuario registrado en wso2, rol en wso2"
+// @Success 200 {object} models.Payload
+// @Failure 404 not found resource
+// @router /addRol [post]
+func (c *TokenController) AddRol() {
+	var (
+		v models.UpdateRol
+	)
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+		beego.Info("V: ", v)
+		if response, err := models.AddRol(v); err == nil {
+			c.Data["json"] = response
+		} else {
+			fmt.Println("error: ", err)
+			c.Data["system"] = err
+			c.Abort("400")
+		}
+	} else {
+		fmt.Println("error: ", err)
+		c.Data["system"] = err
+		c.Abort("400")
+	}
+
+	c.ServeJSON()
 
 }

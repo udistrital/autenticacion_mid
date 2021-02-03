@@ -9,6 +9,15 @@ func init() {
 
     beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:TokenController"] = append(beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:TokenController"],
         beego.ControllerComments{
+            Method: "AddRol",
+            Router: `/addRol`,
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:TokenController"] = append(beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:TokenController"],
+        beego.ControllerComments{
             Method: "GetEmail",
             Router: `/emailToken`,
             AllowHTTPMethods: []string{"post"},
