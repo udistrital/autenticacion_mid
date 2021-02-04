@@ -10,7 +10,7 @@ name: API_deploy
 
 steps: 
   - name: go
-    image: golang:1.9
+    image: golang:1.14
     commands:
      - go mod init
      - go get -t
@@ -83,11 +83,19 @@ steps:
       format: html
       message: >
         {{#success build.status}}
-          <code>{{repo.owner}}/{{repo.name}}</code> <a href="{{build.link}}">SUCCESS</a> 
-          <code>{{commit.branch}}</code>@<a href="{{commit.link}}">{{truncate commit.sha 7}}</a><code> By:{{commit.author}}</code>
+          ✅ <a href="{{build.link}}">SUCCESS</a> <b>Build #{{build.number}}</b>
+          <b>type: </b><code>{{ build.event }}</code>
+          <b>Repo: </b><code>{{repo.name}}</code>
+          <b>Branch: </b><code>{{commit.branch}}</code>
+          <b>Commit: </b><a href="{{commit.link}}">{{truncate commit.sha 7}}</a>
+          <b>Autor: </b>{{commit.author}} <code>&#128526 </code>
         {{else}}
-          <code>{{repo.owner}}/{{repo.name}}</code> <a href="{{build.link}}">FAILURE</a>
-          <code>{{commit.branch}}</code>@<a href="{{commit.link}}">{{truncate commit.sha 7}}</a><code> By:{{commit.author}}</code>
+          ❌ <a href="{{build.link}}">FAILURE</a> <b>Build #{{build.number}}</b>
+          <b>type: </b><code>{{ build.event }}</code>
+          <b>Repo: </b><code>{{repo.name}}</code>
+          <b>Branch: </b><code>{{commit.branch}}</code>
+          <b>Commit: </b><a href="{{commit.link}}">{{truncate commit.sha 7}}</a>
+          <b>Autor: </b>{{commit.author}} <code>&#128549 </code>
         {{/success}}
     when:
       branch:
