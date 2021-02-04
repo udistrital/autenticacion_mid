@@ -96,7 +96,6 @@ func (c *TokenController) AddRol() {
 		c.Data["system"] = err
 		c.Abort("400")
 	}
-
 	c.ServeJSON()
 
 }
