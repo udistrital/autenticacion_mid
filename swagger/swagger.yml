@@ -11,6 +11,26 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0.html
 basePath: /v1
 paths:
+  /token/addRol:
+    post:
+      tags:
+      - token
+      description: Recibe el usuario y el rol
+      operationId: TokenController.AddRol
+      parameters:
+      - in: body
+        name: body
+        description: Usuario registrado en wso2, rol en wso2
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateRol'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Payload'
+        "404":
+          description: not found resource
   /token/emailToken:
     post:
       tags:
@@ -28,14 +48,68 @@ paths:
           description: ""
           schema:
             $ref: '#/definitions/models.Token'
-        "403":
-          description: is empty
+        "404":
+          description: not found resource
+  /token/userRol:
+    post:
+      tags:
+      - token
+      description: Recibe el usuario y devuelve información detallada del usuario
+      operationId: TokenController.GetRol
+      parameters:
+      - in: body
+        name: body
+        description: Usuario registrado en wso2
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserName'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Payload'
+        "404":
+          description: not found resource
 definitions:
+  models.Payload:
+    title: Payload
+    type: object
+    properties:
+      Codigo:
+        type: string
+      Estado:
+        type: string
+      FamilyName:
+        type: string
+      documento:
+        type: string
+      documento_compuesto:
+        type: string
+      email:
+        type: string
+      role:
+        type: array
+        items:
+          type: string
   models.Token:
     title: Token
     type: object
     properties:
       email:
+        type: string
+  models.UpdateRol:
+    title: UpdateRol
+    type: object
+    properties:
+      rol:
+        type: string
+      user:
+        type: string
+  models.UserName:
+    title: UserName
+    type: object
+    properties:
+      user:
         type: string
 tags:
 - name: token
