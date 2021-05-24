@@ -4,7 +4,7 @@ workspace:
   when:
       branch:
       - master
-      - test
+      - release/*
 kind: pipeline
 name: API_deploy
 
@@ -18,7 +18,7 @@ steps:
     when:
       branch:
       - master
-      - test
+      - release/*
       event:
       - push 
 
@@ -125,7 +125,7 @@ steps:
     when:
       branch:
       - master
-      - test
+      - release/*
       status:
       - failure
       - success
