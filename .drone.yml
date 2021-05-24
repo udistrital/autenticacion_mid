@@ -59,6 +59,7 @@ steps:
     - master
     event:
     - push  
+    
   - name: go-awsecs
     image: golang:1.9
     environment:
