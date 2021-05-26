@@ -139,8 +139,8 @@ func GetRolesByUser(user UserName) (roles *Payload, outputError map[string]inter
 	var documentoCompuesto string
 	userRoles := []string{}
 
-	beego.Info("URL: ", beego.AppConfig.String("Wso2Service")+"roles/"+user.User)
-	r := httplib.Get(beego.AppConfig.String("Wso2Service") + "roles/" + user.User)
+	beego.Info("URL: ", beego.AppConfig.String("Wso2Service")+"roles?usuario="+user.User)
+	r := httplib.Get(beego.AppConfig.String("Wso2Service") + "roles?usuario=" + user.User)
 	r.Header("Accept", "application/json")
 	if err := r.ToJSON(&RolesUsuario); err == nil {
 		if RolesUsuario.Usuario.Atributos != nil {
