@@ -1,26 +1,27 @@
-workspace:
-  base: /go
-  path: src/github.com/udistrital/${DRONE_REPO##udistrital/}
-  when:
-      branch:
-      - master
-      - release/*
 kind: pipeline
 name: API_deploy
 
-steps: 
-  - name: go
+trigger:
+  event:
+    exclude:
+      - tag
+
+steps:
+  - name: go_build
     image: golang:1.14
     commands:
-     - go mod init
-     - go get -t
+     - go get
      - GOOS=linux GOARCH=amd64 go build -o main
     when:
       branch:
+      - dependabot/**
+      - develop
+      - feature/*
+      - hotfix/*
       - master
       - release/*
       event:
-      - push 
+      - push
 
   - name: publish_to_ecr_release
     image: plugins/ecr
@@ -96,8 +97,8 @@ steps:
       - release/*
       - master
       event:
-      - push  
-  
+      - push
+
   - name: NotifyTelegram
     image: appleboy/drone-telegram
     settings:

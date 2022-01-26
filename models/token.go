@@ -104,6 +104,13 @@ type PostUsuarioRol struct {
 	} `json:"_post_usuario_rol"`
 }
 
+// RespuestaTokenAddRolPost es el tipo de dato retornado por
+// POST token/addRol
+//
+// TODO: Ajustar para que se actualicen los swagger
+type RespuestaTokenAddRolPost struct {
+}
+
 // GetInfoByEmail ...
 func GetInfoByEmail(m *Token) (u *UserInfo, err error) {
 	var estudianteInfo EstudianteInfo

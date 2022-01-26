@@ -21,8 +21,8 @@ func (c *TokenController) URLMapping() {
 // GetEmail ...
 // @Title GetEmail
 // @Description Recibe el correo electrónico del usuario desde la autenticación
-// @Param	email		path 	string	true		"The key for staticblock"
-// @Success 200 {object} models.Token
+// @Param	body body 	models.Token	true		"The key for staticblock"
+// @Success 200 {object} models.UserInfo
 // @Failure 404 not found resource
 // @router /emailToken [post]
 func (c *TokenController) GetEmail() {
@@ -75,7 +75,7 @@ func (c *TokenController) GetRol() {
 // @Title AddRol
 // @Description Recibe el usuario y el rol
 // @Param	body	body 	models.UpdateRol  true	"Usuario registrado en wso2, rol en wso2"
-// @Success 200 {object} models.Payload
+// @Success 200 {object} models.RespuestaTokenAddRolPost
 // @Failure 404 not found resource
 // @router /addRol [post]
 func (c *TokenController) AddRol() {
