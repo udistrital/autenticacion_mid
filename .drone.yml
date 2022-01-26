@@ -1,16 +1,25 @@
 kind: pipeline
 name: API_deploy
 
+trigger:
+  event:
+    exclude:
+      - tag
+
 steps:
-  - name: go
+  - name: go_build
     image: golang:1.14
     commands:
-     - go get -t
+     - go get
      - GOOS=linux GOARCH=amd64 go build -o main
     when:
       branch:
+      - dependabot/**
+      - develop
+      - feature/*
+      - hotfix/*
       - master
-      - test
+      - release/*
       event:
       - push
 
@@ -27,7 +36,7 @@ steps:
         - latest
     when:
       branch:
-        - test
+        - release/*
         - master
 
   - name: go-awsecs
@@ -39,7 +48,7 @@ steps:
         from_secret: AWS_SECRET_ACCESS_KEY
     commands:
      - case ${DRONE_BRANCH} in
-          test)
+          release/*)
             AMBIENTE=test
             CLUSTER=test
             ;;
@@ -60,7 +69,7 @@ steps:
        $GOPATH/bin/update-aws-ecs-service -cluster $CLUSTER -service $SERVICE -container-image $container_name=$MYCONTAINER
     when:
       branch:
-      - test
+      - release/*
       - master
       event:
       - push
@@ -92,7 +101,7 @@ steps:
     when:
       branch:
       - master
-      - test
+      - release/*
       status:
       - failure
       - success
