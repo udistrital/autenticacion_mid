@@ -37,7 +37,7 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/models.Payload"
+                            "$ref": "#/definitions/models.RespuestaTokenAddRolPost"
                         }
                     },
                     "404": {
@@ -55,18 +55,20 @@
                 "operationId": "TokenController.GetEmail",
                 "parameters": [
                     {
-                        "in": "path",
-                        "name": "email",
+                        "in": "body",
+                        "name": "body",
                         "description": "The key for staticblock",
                         "required": true,
-                        "type": "string"
+                        "schema": {
+                            "$ref": "#/definitions/models.Token"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/models.Token"
+                            "$ref": "#/definitions/models.UserInfo"
                         }
                     },
                     "404": {
@@ -138,6 +140,10 @@
                 }
             }
         },
+        "models.RespuestaTokenAddRolPost": {
+            "title": "RespuestaTokenAddRolPost",
+            "type": "object"
+        },
         "models.Token": {
             "title": "Token",
             "type": "object",
@@ -156,6 +162,27 @@
                 },
                 "user": {
                     "type": "string"
+                }
+            }
+        },
+        "models.UserInfo": {
+            "title": "UserInfo",
+            "type": "object",
+            "properties": {
+                "Codigo": {
+                    "type": "string"
+                },
+                "Estado": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "rol": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
