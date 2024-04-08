@@ -20,7 +20,7 @@ paths:
       parameters:
       - in: body
         name: body
-        description: Usuario registrado en wso2, rol en wso2
+        description: Usuario y roles a adicionar
         required: true
         schema:
           $ref: '#/definitions/models.UpdateRol'
@@ -28,7 +28,27 @@ paths:
         "200":
           description: ""
           schema:
-            $ref: '#/definitions/models.RespuestaTokenAddRolPost'
+            $ref: '#/definitions/models.resUpdateRol'
+        "404":
+          description: not found resource
+  /token/deleteRol:
+    post:
+      tags:
+      - token
+      description: Recibe el usuario y el rol
+      operationId: TokenController.DeleteRol
+      parameters:
+      - in: body
+        name: body
+        description: Usuario y rol a eliminar
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateRol'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.resUpdateRol'
         "404":
           description: not found resource
   /token/emailToken:
@@ -72,6 +92,9 @@ paths:
         "404":
           description: not found resource
 definitions:
+  1852.0xc0003a31d0.false:
+    title: "false"
+    type: object
   models.Payload:
     title: Payload
     type: object
@@ -92,9 +115,6 @@ definitions:
         type: array
         items:
           type: string
-  models.RespuestaTokenAddRolPost:
-    title: RespuestaTokenAddRolPost
-    type: object
   models.Token:
     title: Token
     type: object
@@ -129,6 +149,19 @@ definitions:
     properties:
       user:
         type: string
+  models.resUpdateRol:
+    title: resUpdateRol
+    type: object
+    properties:
+      Data:
+        $ref: '#/definitions/1852.0xc0003a31d0.false'
+      Message:
+        type: string
+      Status:
+        type: integer
+        format: int64
+      Success:
+        type: boolean
 tags:
 - name: token
   description: |

@@ -10,6 +10,7 @@ import (
 	"github.com/astaxie/beego/httplib"
 )
 
+// ? Inputs structures
 // Token structure
 type Token struct {
 	Email string `json:"email"`
@@ -18,6 +19,84 @@ type Token struct {
 // UserName structure
 type UserName struct {
 	User string `json:"user"`
+}
+
+// Body UpdateRol structure
+type UpdateRol struct {
+	User   string `json:"user"`
+	Rol  string `json:"rol"`
+}
+
+type UpdateRol2 struct {
+	User   string `json:"user"`
+	Roles  []string `json:"rol"`
+}
+
+//Body UpdatePerfil structure
+type UpdatePerfil struct {
+	UmAttrValue string `json:"um_attr_value"`
+	UmId        int    `json:"um_id"`
+}
+
+// PostUsuarioRol structure
+type PostUsuarioRol struct {
+	um_role_id int `json:"um_role_id"`
+	um_user_id int `json:"um_role_id"`
+}
+
+// ? Request response structures
+
+type ResUpdatePerfil struct {
+	Perfiles struct {
+		Perfil []struct {
+			UmId string `json:"um_id"`
+		} `json:"perfil"`
+	} `json:"perfiles"`
+}
+
+type ResUsuarioRoles struct {
+	Usuario struct {
+		Roles []struct {
+			UmId     string `json:"um_id"`
+			UmUserId string `json:"um_user_id"`
+			UmRoleId string `json:"um_role_id"`
+		} `json:"Roles"`
+	} `json:"Usuario"`
+}
+
+type ResUserId struct {
+	Usuarios struct {
+		Usuario []struct {
+			Id string `json:"Id"`
+		} `json:"usuario"`
+	} `json:"Usuarios"`
+}
+
+type ResRolId struct {
+	Roles struct {
+		Rol []struct {
+			Id string `json:"id"`
+		} `json:"Rol"`
+	} `json:"Roles"`
+}
+
+type ResPerfilUsuario struct {
+	Perfiles struct {
+		Perfil []struct {
+			UmId        string `json:"um_id"`
+			UmAttrName  string `json:"um_attr_name"`
+			UmAttrValue string `json:"um_attr_value"`
+		} `json:"Perfil"`
+	} `json:"Perfiles"`
+}
+
+// ? Outputs structures
+// resUpdateRol structure
+type resUpdateRol struct {
+	Data    map[string]interface{} `json:"Data`
+	Success bool                   `json:"Success"`
+	Status  int                    `json:"Status"`
+	Message string                 `json:"Message"`
 }
 
 //Payload structure
@@ -41,15 +120,6 @@ type EstudianteInfo struct {
 	} `json:"estudianteCollection"`
 }
 
-//RolesUsuario structure
-type RolesUsuario struct {
-	Usuario struct {
-		Roles []struct {
-			Rol string `json:"rol"`
-		} `json:"Roles"`
-	} `json:"Usuario"`
-}
-
 //AtributosToken structure
 type AtributosToken struct {
 	Usuario struct {
@@ -66,49 +136,6 @@ type UserInfo struct {
 	Estado string   `json:"Estado"`
 	Email  string   `json:"email"`
 	Rol    []string `json:"rol"`
-}
-
-// returnInfo structure
-
-type returnInfo struct {
-	InfoUserInfo     UserInfo ``
-	InfoRolesUsuario RolesUsuario
-}
-
-//UserId structure
-type UserId struct {
-	Usuarios struct {
-		Usuario []struct {
-			Id string `json:"um_id"`
-		} `json:"usuario"`
-	} `json:"Usuarios"`
-}
-
-type RolId struct {
-	Roles struct {
-		Rol []struct {
-			Id int `json:"um_id"`
-		} `json:"Rol"`
-	} `json:"Roles"`
-}
-
-type UpdateRol struct {
-	User string `json:"user"`
-	Rol  string `json:"rol"`
-}
-
-type PostUsuarioRol struct {
-	_post_usuario_rol struct {
-		um_role_id int `json:"um_role_id"`
-		um_user_id int `json:"um_role_id"`
-	} `json:"_post_usuario_rol"`
-}
-
-// RespuestaTokenAddRolPost es el tipo de dato retornado por
-// POST token/addRol
-//
-// TODO: Ajustar para que se actualicen los swagger
-type RespuestaTokenAddRolPost struct {
 }
 
 // GetInfoByEmail ...
@@ -151,7 +178,7 @@ func GetRolesByUser(user UserName) (roles *Payload, outputError map[string]inter
 	r.Header("Accept", "application/json")
 	if err := r.ToJSON(&RolesUsuario); err == nil {
 		if RolesUsuario.Usuario.Atributos != nil {
-			for k, v := range RolesUsuario.Usuario.Atributos {
+			for _, v := range RolesUsuario.Usuario.Atributos {
 				switch v.Atributo {
 				case "role":
 					roles := strings.Split(v.Valor, ",")
@@ -169,7 +196,7 @@ func GetRolesByUser(user UserName) (roles *Payload, outputError map[string]inter
 					mail = v.Valor
 				}
 
-				fmt.Println(k, v)
+				// fmt.Println(k, v)
 			}
 			payload := &Payload{
 				Role:               userRoles,
@@ -189,7 +216,7 @@ func GetRolesByUser(user UserName) (roles *Payload, outputError map[string]inter
 					payload.Role = userRoles
 				}
 			}
-
+			// fmt.Println("Payload: ", payload)
 			return payload, nil
 		} else {
 			outputError = map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": "usuario no registrado"}
@@ -204,189 +231,362 @@ func GetRolesByUser(user UserName) (roles *Payload, outputError map[string]inter
 }
 
 // AddRol ...
-func AddRol(user UpdateRol) (roleSuccess *map[string]map[string]interface{}, outputError map[string]interface{}) {
-	var Uid UserId
-	var Rid RolId
+func AddRol(user UpdateRol) map[string]interface{} {
+	var Uid ResUserId
+	var Rid ResRolId
 	var notExist = true
 	var userName UserName
 	userName.User = user.User
-	urlUsuario := beego.AppConfig.String("Wso2Service") + "usuario/"
-	urlGetProfile := beego.AppConfig.String("Wso2Service") + "perfil/"
-	urlRol := beego.AppConfig.String("Wso2Service") + "rol/"
-	urlUpdateProfile := beego.AppConfig.String("Wso2Service") + "updateperfil"
+	urlUsuario := beego.AppConfig.String("Wso2Service") + "usuario"
+	urlGetProfile := beego.AppConfig.String("Wso2Service") + "perfil"
+	urlRol := beego.AppConfig.String("Wso2Service") + "rol"
+	urlUpdateProfile := beego.AppConfig.String("Wso2UserService") + "updateperfil"
 	urlAddProfile := beego.AppConfig.String("Wso2Service") + "perfil"
-	postRolSuario := beego.AppConfig.String("Wso2Service") + "usuario_rol"
+	postRolUsuario := beego.AppConfig.String("Wso2UserService") + "usuario_rol"
+	var respuesta map[string]interface{}
+
+	// ? Lanzar error para probar el manejo de errores del Controller
+	// panic(map[string]interface{}{
+	// 	"funcion": "TokenController.AddRol",
+	// 	"err":     "El usuario no existe",
+	// 	"status":  "400",
+	// })
 
 	if responseData, err := GetRolesByUser(userName); err == nil {
 		for i := range responseData.Role {
 			if responseData.Role[i] == user.Rol {
 				beego.Info("YA EXISTE: ", responseData.Role[i])
 				notExist = false
-				returnData := map[string]map[string]interface{}{
-					"InfoUser": {
-						"Role":      responseData.Role,
-						"Codigo":    responseData.Codigo,
-						"Estado":    responseData.Estado,
-						"Documento": responseData.Documento,
+				returnData := map[string]interface{}{
+					"InfoUser": map[string]interface{}{
+						"Role": responseData.Role,
 					},
 				}
-				return &returnData, nil
+				respuesta = returnData
 			}
 		}
 	}
+
 	if notExist {
 		var (
 			m                 PostUsuarioRol
 			res               map[string]map[string]interface{}
-			updateProfileBody map[string]map[string]interface{}
+			updateProfileBody UpdatePerfil
 			resUpdateProfile  map[string]map[string]interface{}
-			addProfileBody    map[string]map[string]interface{}
+			addProfileBody    map[string]interface{}
 			resAddProfile     map[string]map[string]interface{}
-			resProfile        map[string]map[string][]map[string]interface{}
-			body              map[string]map[string]interface{}
+			resProfile        ResPerfilUsuario
+			body              map[string]interface{}
 		)
-		beego.Info("URL: ", urlUsuario+user.User)
-		requestUsuario := httplib.Get(urlUsuario + user.User)
+		beego.Info("URL: ", urlUsuario+"?user="+user.User)
+		requestUsuario := httplib.Get(urlUsuario + "?user=" + user.User)
 		requestUsuario.Header("Accept", "application/json")
+
 		if err := requestUsuario.ToJSON(&Uid); err == nil {
 			if len(Uid.Usuarios.Usuario) > 0 {
-				beego.Info("User: ", (Uid.Usuarios.Usuario))
-				beego.Info("URL: ", urlRol+user.Rol)
-				requestRol := httplib.Get(urlRol + user.Rol)
+				beego.Info("User: ", (Uid.Usuarios.Usuario[0].Id))
+				beego.Info("URL Rol: ", urlRol+"?rol="+user.Rol)
+				requestRol := httplib.Get(urlRol + "?rol=" + user.Rol)
 				requestRol.Header("Accept", "application/json")
+
 				if err := requestRol.ToJSON(&Rid); err == nil {
 					if len(Rid.Roles.Rol) > 0 {
-						beego.Info("Rol: ", (Rid.Roles.Rol))
-						m._post_usuario_rol.um_role_id = Rid.Roles.Rol[0].Id
+						beego.Info("Rol: ", (Rid.Roles.Rol[0].Id))
+						roleId, err := strconv.Atoi(Rid.Roles.Rol[0].Id)
+						if err == nil {
+							m.um_role_id = roleId
+						}
 						idUsuario, err := strconv.ParseInt((Uid.Usuarios.Usuario[0].Id), 10, 32)
 						if err == nil {
-							m._post_usuario_rol.um_user_id = int(idUsuario)
+							m.um_user_id = int(idUsuario)
 						}
-						sendRolUser := httplib.Post(postRolSuario)
+						sendRolUser := httplib.Post(postRolUsuario)
 						beego.Info(sendRolUser)
-						body = map[string]map[string]interface{}{
-							"_post_usuario_rol": {
-								"um_user_id": m._post_usuario_rol.um_user_id,
-								"um_role_id": m._post_usuario_rol.um_role_id,
-							},
+						body = map[string]interface{}{
+							"um_role_id": m.um_role_id,
+							"um_user_id": m.um_user_id,
 						}
 						sendRolUser.Header("Accept", "application/json")
 						sendRolUser.Header("Content-Type", "application/json")
 						sendRolUser.JSONBody(body)
 						if err := sendRolUser.ToJSON(&res); err == nil {
-							if res["Fault"]["faultstring"] != nil {
-								beego.Info("Ya existe asignación del rol!")
+							if res["user_role"]["id"] != nil {
+								beego.Info("Se añadió el rol!")
 							} else {
-								beego.Info("Se añadió!")
+								beego.Info("Ya existe asignación del rol!")
 							}
-							requestProfile := httplib.Get(urlGetProfile + strconv.Itoa(m._post_usuario_rol.um_user_id))
+							beego.Info("URL Get Profile: ", urlGetProfile+"?um_user_id="+strconv.Itoa(m.um_user_id))
+							requestProfile := httplib.Get(urlGetProfile + "?um_user_id=" + strconv.Itoa(m.um_user_id))
 							requestProfile.Header("Accept", "application/json")
 							if err := requestProfile.ToJSON(&resProfile); err == nil {
-								if len(resProfile["Perfiles"]["Perfil"]) == 0 {
+								if len(resProfile.Perfiles.Perfil) == 0 {
 									// post profile if not exist
 									addProfile := httplib.Post(urlAddProfile)
 									addProfile.Header("Accept", "application/json")
 									addProfile.Header("Content-Type", "application/json")
-									addProfileBody = map[string]map[string]interface{}{
-										"_post_perfil": {
-											"um_attr_value": "Internal/everyone," + user.Rol, // adding rol to update profile
-											"um_user_id":    m._post_usuario_rol.um_user_id,
-										},
+									addProfileBody = map[string]interface{}{
+										"um_attr_value": "Internal/everyone," + user.Rol, // adding rol to update profile
+										"um_user_id":    m.um_user_id,
 									}
 									addProfile.JSONBody(addProfileBody)
 									if err := addProfile.ToJSON(&resAddProfile); err == nil {
 										if resUpdateProfile["perfiles"]["perfil"] != nil {
 											beego.Info(resUpdateProfile["perfiles"]["perfil"])
-											return &updateProfileBody, nil
+											addProfileBody2 := map[string]interface{}{
+												"post_addperfil": map[string]interface{}{
+													"um_attr_value": "Internal/everyone," + user.Rol,
+													"um_user_id":    m.um_user_id,
+												},
+											}
+											respuesta = addProfileBody2
 										} else {
 											beego.Info("No se puede actualizar perfil !", resAddProfile)
-											outputError = map[string]interface{}{"Function": "FuncionalidadMidController:UpdateProfile", "Error": err}
-											return nil, outputError
+											panic(map[string]interface{}{"Function": "FuncionalidadMidController:UpdateProfile", "Error": "No se puede actualizar perfil ! " + err.Error()})
 										}
 									} else {
 										beego.Info("No se puede actualizar perfil !")
-										outputError = map[string]interface{}{"Function": "FuncionalidadMidController:UpdateProfile", "Error": err}
-										return nil, outputError
+										panic(map[string]interface{}{"Function": "FuncionalidadMidController:UpdateProfile", "Error": "No se puede actualizar perfil ! " + err.Error()})
 									}
 								} else {
-									if resProfile["Perfiles"]["Perfil"][0]["um_attr_value"] != nil &&
-										resProfile["Perfiles"]["Perfil"][0]["um_id"] != nil {
+									if resProfile.Perfiles.Perfil[0].UmAttrValue != "" &&
+										resProfile.Perfiles.Perfil[0].UmId != "" {
 										// put profile if exist
-										beego.Info("perfil actual", resProfile["Perfiles"]["Perfil"][0]["um_attr_value"])
-										beego.Info("ID perfil actual", resProfile["Perfiles"]["Perfil"][0]["um_id"])
-										str := fmt.Sprintf("%v", resProfile["Perfiles"]["Perfil"][0]["um_attr_value"])
-										if strings.Index(str, user.Rol) == -1 { // if not exist profile
+										beego.Info("perfil actual", resProfile.Perfiles.Perfil[0].UmAttrValue)
+										beego.Info("ID perfil actual", resProfile.Perfiles.Perfil[0].UmId)
+										str := fmt.Sprintf("%v", resProfile.Perfiles.Perfil[0].UmAttrValue)
+										rolesUsuario := strings.Split(str, ",")
+										rolExiste := false
+
+										for _, role := range rolesUsuario {
+											fmt.Println("role: ", role)
+											if role == user.Rol {
+												rolExiste = true
+												break
+											}
+										}
+										fmt.Println("str: ", str)
+										if !rolExiste { // if not exist profile
 											updateProfile := httplib.Put(urlUpdateProfile)
 											updateProfile.Header("Accept", "application/json")
 											updateProfile.Header("Content-Type", "application/json")
-											UmIdProfile, errIdProfile := strconv.Atoi(fmt.Sprintf("%v", resProfile["Perfiles"]["Perfil"][0]["um_id"]))
+											UmIdProfile, errIdProfile := strconv.Atoi(fmt.Sprintf("%v", resProfile.Perfiles.Perfil[0].UmId))
 											if errIdProfile == nil {
-												updateProfileBody = map[string]map[string]interface{}{
-													"_put_updateperfil": {
-														"um_attr_value": user.Rol + "," + str, // adding rol to update profile
-														"um_id":         UmIdProfile,
-													},
-												}
+												updateProfileBody.UmAttrValue = user.Rol + "," + str
+												updateProfileBody.UmId = UmIdProfile
 											}
 											updateProfile.JSONBody(updateProfileBody)
+											fmt.Println("updateProfileBody: ", updateProfileBody)
 											if err := updateProfile.ToJSON(&resUpdateProfile); err == nil {
+												fmt.Println("resUpdateProfile: ", resUpdateProfile)
 												if resUpdateProfile["perfiles"]["perfil"] != nil {
 													beego.Info(resUpdateProfile["perfiles"]["perfil"])
-													return &updateProfileBody, nil
+													updateProfileBody2 := map[string]interface{}{
+														"put_updateperfil": map[string]interface{}{
+															"um_attr_value": user.Rol + "," + str,
+															"um_id":         UmIdProfile,
+														},
+													}
+													respuesta = updateProfileBody2
 												} else {
 													beego.Info("No se puede actualizar perfil !")
-													outputError = map[string]interface{}{"Function": "FuncionalidadMidController:UpdateProfile", "Error": err}
-													return nil, outputError
+													panic(map[string]interface{}{"Function": "FuncionalidadMidController:UpdateProfile", "Error": err})
 												}
 											} else {
-												beego.Info("No se puede actualizar perfil !")
-												outputError = map[string]interface{}{"Function": "FuncionalidadMidController:UpdateProfile", "Error": err}
-												return nil, outputError
+												beego.Info("No se puede actualizar perfil, error en la peticion!")
+												panic(map[string]interface{}{"Function": "FuncionalidadMidController:UpdateProfile", "Error": "No se puede actualizar perfil, error en la peticion! " + err.Error()})
 											}
 										} else {
-											returnData := map[string]map[string]interface{}{
-												"InfoUser": {
-													"Role": strings.Split(str, ","),
-												},
-											}
-											return &returnData, nil
+											panic(map[string]interface{}{"Function": "FuncionalidadMidController:UpdateProfile", "Error": "El rol ya existe en el perfil!"})
 										}
 									}
 								}
 							} else {
 								beego.Info("No se puede actualizar perfil !")
-								outputError = map[string]interface{}{"Function": "FuncionalidadMidController:addRol No se puede actualizar perfil !", "Error": err}
-								return nil, outputError
+								panic(map[string]interface{}{"Function": "FuncionalidadMidController:UpdateProfile", "Error": err})
 							}
 						} else {
 							beego.Info("No se puede actualizar el rol!")
-							outputError = map[string]interface{}{"Function": "FuncionalidadMidController:addRol No se puede actualizar rol !", "Error": err}
-							return nil, outputError
+							panic(map[string]interface{}{"Function": "FuncionalidadMidController:addRol No se puede actualizar rol !", "Error": err})
 						}
 					} else {
 						beego.Info("El rol no existe !")
-						outputError = map[string]interface{}{"Function": "FuncionalidadMidController:addRol el rol no existe!", "Error": err}
-						return nil, outputError
+						panic(map[string]interface{}{"Function": "FuncionalidadMidController:addRol", "Error": "El rol no existe! " + err.Error()})
 					}
 				} else {
 					beego.Info("R: ", requestUsuario)
-					outputError = map[string]interface{}{"Function": "FuncionalidadMidController: R", "Error": err}
-					return nil, outputError
+					panic(map[string]interface{}{"Function": "FuncionalidadMidController:addRol", "Error": err})
 				}
 			} else {
 				beego.Info("El usuario no existe !")
-				outputError = map[string]interface{}{"Function": "FuncionalidadMidController:addRol", "Error": err}
-				return nil, outputError
+				panic(map[string]interface{}{"Function": "FuncionalidadMidController:addRol", "Error": "El usuario no existe! " + err.Error()})
 			}
-			return roleSuccess, nil
 		} else {
 			beego.Info("R: ", requestUsuario)
-			outputError = map[string]interface{}{"Function": "FuncionalidadMidController:addRol", "Error": err}
-			return nil, outputError
+			panic(map[string]interface{}{"Function": "FuncionalidadMidController:addRol", "Error": err})
 		}
-	} else {
-		return nil, outputError
 	}
-	// if err := request.GetJson(beego.AppConfig.String("GetRoleByUser")+m.User, RolesUsuario); err == nil {
-	// }
+	return respuesta
+}
+
+func DeleteRol(user UpdateRol) map[string]interface{} {
+	var updatePerfilBody UpdatePerfil
+	var resUserId ResUserId
+	var resRolId ResRolId
+	var resUpdateProfile ResUpdatePerfil
+	var resUsuarioRoles ResUsuarioRoles
+	var perfilUsuario ResPerfilUsuario
+	var userName UserName
+	
+	var rolEliminar string
+
+	userName.User = user.User
+	urlUsuario := beego.AppConfig.String("Wso2Service") + "usuario"
+	urlGetProfile := beego.AppConfig.String("Wso2Service") + "perfil"
+	urlRol := beego.AppConfig.String("Wso2Service") + "rol"
+	urlDeleteUsuarioRol := beego.AppConfig.String("Wso2UserService") + "deleteusuariorol/"
+	urlUpdateProfile := beego.AppConfig.String("Wso2UserService") + "updateperfil"
+
+	if responseData, err := GetRolesByUser(userName); err == nil {
+		for i := range responseData.Role {
+			if responseData.Role[i] == user.Rol {
+				rolEliminar = responseData.Role[i]
+				beego.Info("URL Obtener UserId: ", urlUsuario+"?user="+user.User)
+				requestUsuario := httplib.Get(urlUsuario + "?user=" + user.User)
+				requestUsuario.Header("Accept", "application/json")
+				// ? Lanzar error para probar el manejo de errores del Controller
+				// panic(map[string]interface{}{
+				// 	"funcion": "TokenController.DeleteRol",
+				// 	"err":     "El usuario ya tiene asignado este rol",
+				// 	"status":  "400",
+				// })
+				if err := requestUsuario.ToJSON(&resUserId); err == nil {
+					if len(resUserId.Usuarios.Usuario) > 0 {
+						beego.Info("User ENCONTRADO: ", (resUserId.Usuarios.Usuario[0].Id))
+						requestRol := httplib.Get(urlRol + "?rol=" + user.Rol)
+						beego.Info("URL Obtener RolId: ", urlRol+"?rol="+user.Rol)
+						requestRol.Header("Accept", "application/json")
+						if err := requestRol.ToJSON(&resRolId); err == nil {
+							if len(resRolId.Roles.Rol) > 0 {
+								beego.Info("Rol ENCONTRADO: ", (resRolId.Roles.Rol[0].Id))
+								urlGetUsuarioRol := beego.AppConfig.String("Wso2Service") + "get_usuario_rol?usuario=" + resUserId.Usuarios.Usuario[0].Id
+								beego.Info("URL Obtener ResUsuarioRoles (Rompimiento): ", urlGetUsuarioRol)
+								requestUsuarioRol := httplib.Get(urlGetUsuarioRol)
+								requestUsuarioRol.Header("Accept", "application/json")
+								if err := requestUsuarioRol.ToJSON(&resUsuarioRoles); err == nil {
+									if len(resUsuarioRoles.Usuario.Roles) > 0 {
+										bandera := false
+										for i := range resUsuarioRoles.Usuario.Roles {
+											if resUsuarioRoles.Usuario.Roles[i].UmRoleId == resRolId.Roles.Rol[0].Id {
+												// Role found
+												bandera = true
+												requestDeleteUsuarioRol := httplib.Delete(urlDeleteUsuarioRol + resUsuarioRoles.Usuario.Roles[i].UmId)
+												if err := requestDeleteUsuarioRol.ToJSON(&resUsuarioRoles); err == nil {
+													// Get perfil usuario
+													requestPerfilUsuario := httplib.Get(urlGetProfile + "?um_user_id=" + resUserId.Usuarios.Usuario[0].Id)
+													requestPerfilUsuario.Header("Accept", "application/json")
+													if err := requestPerfilUsuario.ToJSON(&perfilUsuario); err == nil {
+														if len(perfilUsuario.Perfiles.Perfil) > 0 {
+															// perfil exists
+															perfilActualizado := strings.Split(perfilUsuario.Perfiles.Perfil[0].UmAttrValue, ",")
+															for i := range perfilActualizado {
+																if perfilActualizado[i] == rolEliminar {
+																	perfilActualizado = append(perfilActualizado[:i], perfilActualizado[i+1:]...)
+																	break
+																}
+															}
+															strPerfil := strings.Join(perfilActualizado, ",") // Convirtiendo array a string
+															updateProfile := httplib.Put(urlUpdateProfile)
+															updateProfile.Header("Accept", "application/json")
+															updateProfile.Header("Content-Type", "application/json")
+															updatePerfilBody.UmAttrValue = strPerfil
+															updatePerfilBody.UmId, _ = strconv.Atoi(perfilUsuario.Perfiles.Perfil[0].UmId)
+															updateProfile.JSONBody(updatePerfilBody)
+															if err := updateProfile.ToJSON(&resUpdateProfile); err == nil {
+																if resUpdateProfile.Perfiles.Perfil != nil {
+																	beego.Info("PERFIL ACTUALIZADO: ", resUpdateProfile.Perfiles.Perfil)
+																	response := map[string]interface{}{
+																		"put_updateperfil": map[string]interface{}{
+																			"um_attr_value": strPerfil,
+																			"um_id": updatePerfilBody.UmId,
+																		},
+																	}
+																	return response
+																} else {
+																	beego.Info("No se puede actualizar perfil!")
+																	panic(map[string]interface{}{"funcion": "TokenController.DeleteRol", "err": "No se puede actualizar perfil", "status": "400"})
+																}
+															} else {
+																panic(map[string]interface{}{"funcion": "TokenController.DeleteRol", "err": "Error al actualizar el perfil del usuario", "status": "400"})
+															}
+														}
+													} else {
+														panic(map[string]interface{}{"funcion": "TokenController.DeleteRol", "err": "Error al obtener el perfil del usuario", "status": "400"})
+													}
+												} else {
+													panic(map[string]interface{}{"funcion": "TokenController.DeleteRol", "err": "Error al eliminar el rol del usuario", "status": "400"})
+												}
+											}
+										}
+										if !bandera { // Caso en que el rol no existe en la tabla de rompimiento pero igual se debe validar que no exista en el perfil
+											// Get perfil usuario
+											requestPerfilUsuario := httplib.Get(urlGetProfile + "?um_user_id=" + resUserId.Usuarios.Usuario[0].Id)
+											requestPerfilUsuario.Header("Accept", "application/json")
+											if err := requestPerfilUsuario.ToJSON(&perfilUsuario); err == nil {
+												if len(perfilUsuario.Perfiles.Perfil) > 0 {
+													// perfil exists
+													perfilActualizado := strings.Split(perfilUsuario.Perfiles.Perfil[0].UmAttrValue, ",")
+													for i := range perfilActualizado {
+														if perfilActualizado[i] == rolEliminar {
+															perfilActualizado = append(perfilActualizado[:i], perfilActualizado[i+1:]...)
+															break
+														}
+													}
+													strPerfil := strings.Join(perfilActualizado, ",") // Convirtiendo array a string
+													updateProfile := httplib.Put(urlUpdateProfile)
+													updateProfile.Header("Accept", "application/json")
+													updateProfile.Header("Content-Type", "application/json")
+													updatePerfilBody.UmAttrValue = strPerfil
+													updatePerfilBody.UmId, _ = strconv.Atoi(perfilUsuario.Perfiles.Perfil[0].UmId)
+													updateProfile.JSONBody(updatePerfilBody)
+													if err := updateProfile.ToJSON(&resUpdateProfile); err == nil {
+														if resUpdateProfile.Perfiles.Perfil != nil {
+															beego.Info("PERFIL ACTUALIZADO: ", resUpdateProfile.Perfiles.Perfil)
+															response := map[string]interface{}{
+																"put_updateperfil": map[string]interface{}{
+																	"um_attr_value": strPerfil,
+																	"um_id": updatePerfilBody.UmId,
+																},
+															}
+															return response
+														} else {
+															beego.Info("No se puede actualizar perfil!")
+															panic(map[string]interface{}{"funcion": "TokenController.DeleteRol", "err": "No se puede actualizar perfil", "status": "400"})
+														}
+													} else {
+														panic(map[string]interface{}{"funcion": "TokenController.DeleteRol", "err": "Error al actualizar el perfil del usuario", "status": "400"})
+													}
+												}
+											} else {
+												panic(map[string]interface{}{"funcion": "TokenController.DeleteRol", "err": "Error al obtener el perfil del usuario", "status": "400"})
+											}
+										}
+									}
+								} else {
+									panic(map[string]interface{}{"funcion": "TokenController.DeleteRol", "err": "Error al obtener los roles del usuario", "status": "400"})
+								}
+							}
+						} else {
+							panic(map[string]interface{}{"funcion": "TokenController.DeleteRol", "err": "Error al obtener el Id del rol", "status": "400"})
+						}
+					}
+				} else {
+					panic(map[string]interface{}{"funcion": "TokenController.DeleteRol", "err": "Error al obtener el Id del usuario", "status": "400"})
+				}
+			}
+		}
+		if rolEliminar == "" {
+			panic(map[string]interface{}{"funcion": "TokenController.DeleteRol", "err": "El usuario no tiene asignado el rol", "status": "400"})
+		}
+	}
+	return nil
 }
