@@ -1,11 +1,78 @@
 # autenticacion_mid
 
-Api mid que recupera los datos del usuario según el correo electronico
+API Mid para el sistema de autenticación Universidad Distrital.
 
-Actualmente el api valida:
+Actualmente la API valida:
 
 - Código de los estudiantes por usuario
 - Validación de usuario por correo institucional
+- Adición de roles a usuarios
+- Eliminación de roles a usuarios
+
+## Especificaciones Técnicas
+
+### Tecnologías Implementadas y Versiones
+
+- Golang
+- BeeGo
+
+## Variables de Entorno
+
+```
+  AUTENTICACION_MID_HTTP_PORT: [Puerto de ejecución API]
+  CODE_BY_EMAIL_STUDENT_URL: [Servicio WSO2 de consulta de estudiantes]
+  WSO2_AUTH_SERVICE: [Servicio WSO2 de Autenticación]
+  WSO2_USER_SERVICE: [Servicio WSO2 de Usuarios]
+```
+
+**NOTA:** Las variables se pueden ver en el fichero conf/app.conf y están identificadas con AUTENTICACION_MID_HTTP_PORT...
+
+
+## Ejecución del proyecto
+```
+#1. Obtener el repositorio con Go
+go get github.com/udistrital/autenticacion_mid
+
+#2. Moverse a la carpeta del repositorio
+cd $GOPATH/src/github.com/udistrital/autenticacion_mid
+
+# 3. Moverse a la rama **develop**
+git pull origin develop && git checkout develop
+
+# 4. alimentar todas las variables de entorno que utiliza el proyecto.
+AUTENTICACION_MID_HTTP_PORT=8080 CODE_BY_EMAIL_STUDENT_URL=some_value bee run
+```
+
+
+## Ejecución Pruebas
+
+### Pruebas Unitarias
+
+#### TokenController
+
+- **TestEmailToken:** <span style="color: #4cc61e;"><b>Test OK</b></span>
+![TestEmailToken](tests/Unit%20Test/TestEmailToken.png)
+
+- **TestUserRol:** <span style="color: #4cc61e;"><b>Test OK</b></span>
+![TestUserRol](tests/Unit%20Test/TestUserRol.png)
+
+#### RolController
+
+- **TestAddRol:** <span style="color: #4cc61e;"><b>Test OK</b></span>
+![TestAddRol](tests/Unit%20Test/TestAddRol.png)
+
+- **TestRemoveRol:** <span style="color: #4cc61e;"><b>Test OK</b></span>
+![TestRemoveRol](tests/Unit%20Test/TestRemoveRol.png)
+
+## Licencia
+
+This file is part of autenticacion_mid.
+
+autenticacion_mid is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+planeacion_mid is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with planeacion_mid. If not, see https://www.gnu.org/licenses/.
 
 ## Estado CI
 
