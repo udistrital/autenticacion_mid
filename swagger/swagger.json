@@ -15,13 +15,13 @@
     },
     "basePath": "/v1",
     "paths": {
-        "/token/addRol": {
+        "/rol/add": {
             "post": {
                 "tags": [
-                    "token"
+                    "rol"
                 ],
                 "description": "Recibe el usuario y el rol",
-                "operationId": "TokenController.AddRol",
+                "operationId": "RolController.AddRol",
                 "parameters": [
                     {
                         "in": "body",
@@ -37,8 +37,11 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/models.resUpdateRol"
+                            "$ref": "#/definitions/models.ResponseDTO"
                         }
+                    },
+                    "400": {
+                        "description": "El rol ya está asignado al usuario"
                     },
                     "404": {
                         "description": "not found resource"
@@ -46,18 +49,18 @@
                 }
             }
         },
-        "/token/deleteRol": {
+        "/rol/remove": {
             "post": {
                 "tags": [
-                    "token"
+                    "rol"
                 ],
                 "description": "Recibe el usuario y el rol",
-                "operationId": "TokenController.DeleteRol",
+                "operationId": "RolController.RemoveRol",
                 "parameters": [
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "Usuario y rol a eliminar",
+                        "description": "Usuario y rol a remover",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/models.UpdateRol"
@@ -68,7 +71,7 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/models.resUpdateRol"
+                            "$ref": "#/definitions/models.ResponseDTO"
                         }
                     },
                     "404": {
@@ -141,7 +144,7 @@
         }
     },
     "definitions": {
-        "1852.0xc0003a31d0.false": {
+        "119.0xc000365b60.false": {
             "title": "false",
             "type": "object"
         },
@@ -172,6 +175,25 @@
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "models.ResponseDTO": {
+            "title": "ResponseDTO",
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/119.0xc000365b60.false"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -225,31 +247,16 @@
                     "type": "string"
                 }
             }
-        },
-        "models.resUpdateRol": {
-            "title": "resUpdateRol",
-            "type": "object",
-            "properties": {
-                "Data": {
-                    "$ref": "#/definitions/1852.0xc0003a31d0.false"
-                },
-                "Message": {
-                    "type": "string"
-                },
-                "Status": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Success": {
-                    "type": "boolean"
-                }
-            }
         }
     },
     "tags": [
         {
             "name": "token",
             "description": "TokenController operations for Token\n"
+        },
+        {
+            "name": "rol",
+            "description": "RolController operations for Rol\n"
         }
     ]
 }
