@@ -8,10 +8,10 @@ trigger:
 
 steps:
   - name: go_build
-    image: golang:1.14
+    image: golang:1.17
     commands:
-     - go get
-     - GOOS=linux GOARCH=amd64 go build -o main
+    - go get
+    - GOOS=linux GOARCH=amd64 go build -o main
     when:
       branch:
       - dependabot/**
