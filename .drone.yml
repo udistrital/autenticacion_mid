@@ -8,7 +8,7 @@ trigger:
 
 steps:
   - name: go_build
-    image: golang:1.17
+    image: golang:1.16
     commands:
     - go get
     - GOOS=linux GOARCH=amd64 go build -o main
