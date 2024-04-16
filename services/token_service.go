@@ -34,7 +34,7 @@ func GetInfoByEmail(m *models.Token) (u *models.UserInfo, err error) {
 }
 
 // GetRolesByUser ...
-func GetRolesByUser(user models.UserName) (roles *models.Payload, outputError error) {
+func GetRolesByUser(user models.UserName) (roles *models.Payload, outputError map[string]interface{}) {
 	var familyName string
 	var documento string
 	var mail string
@@ -44,7 +44,8 @@ func GetRolesByUser(user models.UserName) (roles *models.Payload, outputError er
 	RolesUsuario, err := helpers.GetRolesUsuario(user.User)
 
 	if err != nil {
-		return nil, err
+		outputError = map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": err}
+		return nil, outputError
 	}
 
 	if len(RolesUsuario.Usuario.Atributos) > 0 {
@@ -79,7 +80,8 @@ func GetRolesByUser(user models.UserName) (roles *models.Payload, outputError er
 		EstudianteInfo, err := helpers.GetCodeByEmailStudentService(mail)
 
 		if err != nil {
-			return nil, err
+			outputError = map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": err}
+			return nil, outputError
 		}
 
 		if len(EstudianteInfo.EstudianteCollection.Estudiante) > 0 {
@@ -92,6 +94,8 @@ func GetRolesByUser(user models.UserName) (roles *models.Payload, outputError er
 		return payload, nil
 
 	} else {
-		return nil, errors.New("Usuario no registrado")
+		outputError = map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": "Usuario no registrado"}
+
+		return nil, outputError
 	}
 }
