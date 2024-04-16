@@ -1,3 +1,12 @@
+workspace:
+  base: /go
+  path: src/github.com/udistrital/${DRONE_REPO##udistrital/}
+  when:
+      branch:
+      - develop
+      - release/*
+      - master
+
 kind: pipeline
 name: API_deploy
 
@@ -8,10 +17,11 @@ trigger:
 
 steps:
   - name: go_build
-    image: golang:1.14
+    image: golang:1.18
     commands:
-     - go get
-     - GOOS=linux GOARCH=amd64 go build -o main
+    - go mod init
+    - go get -t
+    - GOOS=linux GOARCH=amd64 go build -o main
     when:
       branch:
       - dependabot/**
