@@ -16,10 +16,10 @@ func AddRol(user models.UpdateRol) (map[string]interface{}, error) {
 	var rolEncontrado = false
 	userName.User = user.User
 
-	RolesUsuario, err := GetRolesByUser(userName)
+	RolesUsuario, err1 := GetRolesByUser(userName)
 
-	if err != nil {
-		return nil, errors.New("Error al obtener los roles del usuario")
+	if err1 != nil {
+		return nil, errors.New("Error al obtener los roles del usuario en rol_service.AddRol: " + err1["Error"].(string))
 	}
 
 	for i := range RolesUsuario.Role {
@@ -150,9 +150,9 @@ func RemoveRol(user models.UpdateRol) (map[string]interface{}, error) {
 	userName.User = user.User
 
 	// Obtener Roles del Usuario
-	RolesUsuario, err := GetRolesByUser(userName)
-	if err != nil {
-		return nil, err
+	RolesUsuario, err1 := GetRolesByUser(userName)
+	if err1 != nil {
+		return nil, errors.New("Error al obtener los roles del usuario en rol_service.RemoveRol: " + err1["Error"].(string))
 	}
 
 	for i := range RolesUsuario.Role {
