@@ -19,6 +19,11 @@ func init() {
 				&controllers.TokenController{},
 			),
 		),
+		beego.NSNamespace("/rol",
+			beego.NSInclude(
+				&controllers.RolController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }

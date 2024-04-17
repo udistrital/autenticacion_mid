@@ -7,10 +7,19 @@ import (
 
 func init() {
 
-    beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:TokenController"] = append(beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:TokenController"],
+    beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:RolController"] = append(beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:RolController"],
         beego.ControllerComments{
             Method: "AddRol",
-            Router: "/addRol",
+            Router: "/add",
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:RolController"] = append(beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:RolController"],
+        beego.ControllerComments{
+            Method: "RemoveRol",
+            Router: "/remove",
             AllowHTTPMethods: []string{"post"},
             MethodParams: param.Make(),
             Filters: nil,

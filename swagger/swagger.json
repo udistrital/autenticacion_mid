@@ -15,18 +15,18 @@
     },
     "basePath": "/v1",
     "paths": {
-        "/token/addRol": {
+        "/rol/add": {
             "post": {
                 "tags": [
-                    "token"
+                    "rol"
                 ],
                 "description": "Recibe el usuario y el rol",
-                "operationId": "TokenController.AddRol",
+                "operationId": "RolController.AddRol",
                 "parameters": [
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "Usuario registrado en wso2, rol en wso2",
+                        "description": "Usuario y roles a adicionar",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/models.UpdateRol"
@@ -37,7 +37,41 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/models.RespuestaTokenAddRolPost"
+                            "$ref": "#/definitions/models.ResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "El rol ya está asignado al usuario"
+                    },
+                    "404": {
+                        "description": "not found resource"
+                    }
+                }
+            }
+        },
+        "/rol/remove": {
+            "post": {
+                "tags": [
+                    "rol"
+                ],
+                "description": "Recibe el usuario y el rol",
+                "operationId": "RolController.RemoveRol",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Usuario y rol a remover",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateRol"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.ResponseDTO"
                         }
                     },
                     "404": {
@@ -110,6 +144,10 @@
         }
     },
     "definitions": {
+        "119.0xc00045f380.false": {
+            "title": "false",
+            "type": "object"
+        },
         "models.Payload": {
             "title": "Payload",
             "type": "object",
@@ -140,9 +178,24 @@
                 }
             }
         },
-        "models.RespuestaTokenAddRolPost": {
-            "title": "RespuestaTokenAddRolPost",
-            "type": "object"
+        "models.ResponseDTO": {
+            "title": "ResponseDTO",
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/119.0xc00045f380.false"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
         },
         "models.Token": {
             "title": "Token",
@@ -200,6 +253,10 @@
         {
             "name": "token",
             "description": "TokenController operations for Token\n"
+        },
+        {
+            "name": "rol",
+            "description": "RolController operations for Rol\n"
         }
     ]
 }
