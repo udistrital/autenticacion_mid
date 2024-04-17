@@ -72,7 +72,7 @@ steps:
       - push
 
   - name: update_aws_ecs
-    image: golang:1.9
+    image: golang:1.18
     environment:
       AWS_ACCESS_KEY_ID:
         from_secret: AWS_ACCESS_KEY_ID
@@ -82,16 +82,16 @@ steps:
         from_secret: AWS_CONTAINER
     commands:
     - case ${DRONE_BRANCH} in
-         release/*)
-           AMBIENTE=test
-           CLUSTER=test
-           MYCONTAINER=$${AWS_CONTAINER}/${DRONE_REPO##udistrital/}:release
-           ;;
-         master)
-           AMBIENTE=prod
-           CLUSTER=oas
-           MYCONTAINER=$${AWS_CONTAINER}/${DRONE_REPO##udistrital/}:latest
-           ;;
+        release/*)
+          AMBIENTE=test
+          CLUSTER=test
+          MYCONTAINER=$${AWS_CONTAINER}/${DRONE_REPO##udistrital/}:release
+          ;;
+        master)
+          AMBIENTE=prod
+          CLUSTER=oas
+          MYCONTAINER=$${AWS_CONTAINER}/${DRONE_REPO##udistrital/}:latest
+          ;;
       esac
     - AWS_REGION=us-east-1
     - SERVICE=${DRONE_REPO##udistrital/}_$AMBIENTE
