@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
-
+	
 	"github.com/astaxie/beego"
 	"github.com/udistrital/autenticacion_mid/models"
 	"github.com/udistrital/autenticacion_mid/services"
@@ -17,6 +17,7 @@ type TokenController struct {
 func (c *TokenController) URLMapping() {
 	c.Mapping("GetEmail", c.GetEmail)
 	c.Mapping("GetRol", c.GetRol)
+	c.Mapping("GetDocumento", c.GetDocumento)
 }
 
 // GetEmail ...
@@ -27,7 +28,7 @@ func (c *TokenController) URLMapping() {
 // @Failure 404 not found resource
 // @router /emailToken [post]
 func (c *TokenController) GetEmail() { // ? No se usa el APIResponseDTO debido a que este endpoint se utiliza por muchos servicios en producción con el formato de respuesta antiguo
-
+	
 	var (
 		v models.Token
 	)
@@ -69,6 +70,33 @@ func (c *TokenController) GetRol() { // ? No se usa el APIResponseDTO debido a q
 		}
 	} else {
 		c.Data["system"] = err
+		c.Abort("400")
+	}
+
+	c.ServeJSON()
+}
+// GetDocumento ...
+// @Title GetDocumento
+// @Description Recibe el documento y devuelve información detallada del usuario
+// @Param	body	body 	models.Documento  	true		"Documento del usuario"
+// @Success 200 {object} models.Payload
+// @Failure 404 not found resource
+// @router /documentoToken [post]
+func (c *TokenController) GetDocumento() { 
+	
+	var (
+		v models.Documento
+	)
+	
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+		if response, err := services.GetInfoDocumento(v); err == nil {
+			c.Data["json"] = response
+		} else {
+			beego.Error(err)
+			c.Abort("400")
+		}
+	} else {
+		beego.Error(err)
 		c.Abort("400")
 	}
 
