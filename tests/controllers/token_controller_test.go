@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/udistrital/autenticacion_mid/models"
 )
 
@@ -69,4 +70,31 @@ func TestUserRol(t *testing.T) {
 		t.Error("Error UserRol: ", err.Error())
 		t.Fail()
 	}
+}
+
+func TestDocumentoToken(t *testing.T) {
+	a := assert.New(t)
+	endpoint := "http://localhost:8082/v1/token/documentoToken"
+	contentType := "application/json"
+	body := models.Documento{
+		Numero: "80761795",
+	}
+
+	// Convertir el cuerpo a formato JSON
+	bodyBytes, err := json.Marshal(body)
+	a.NoError(err, "Error al convertir el cuerpo a JSON")
+
+	// Crear un io.Reader con los datos JSON
+	bodyReader := bytes.NewReader(bodyBytes)
+
+	// Realizar la solicitud HTTP POST
+	response, err := http.Post(endpoint, contentType, bodyReader)
+	a.NoError(err, "Error al realizar la solicitud HTTP")
+
+	// Verificar el código de estado de la respuesta
+	a.Equal(http.StatusOK, response.StatusCode, "Error en DocumentoToken, se esperaba 200 y se obtuvo %v", response.StatusCode)
+
+	var responseBody map[string]interface{}
+	err = json.NewDecoder(response.Body).Decode(&responseBody)
+	a.NoError(err, "Error al decodificar el cuerpo de la respuesta")
 }
