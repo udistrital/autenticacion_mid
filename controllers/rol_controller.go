@@ -19,6 +19,8 @@ type RolController struct {
 func (c *RolController) URLMapping() {
 	c.Mapping("AddRol", c.AddRol)
 	c.Mapping("RemoveRol", c.RemoveRol)
+	c.Mapping("GetPeriodoInfo", c.GetPeriodoInfo)
+	c.Mapping("GetAllPeriodos", c.GetAllPeriodos)
 }
 
 // AddRol ...
@@ -83,6 +85,64 @@ func (c *RolController) RemoveRol() {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, err.Error())
+	} else {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, response)
+	}
+	c.ServeJSON()
+}
+
+// GetPeriodoInfo ...
+// @Title GetPeriodoInfo
+// @Description Obtiene los periodos de roles de un usuario por su documento
+// @Param	documento	path 	string	true	"Documento del usuario"
+// @Success 200 {object} []models.PeriodoRolUsuario
+// @Failure 404 not found resource
+// @router /user/:documento/periods [get]
+func (c *RolController) GetPeriodoInfo() {
+	defer errorhandler.HandlePanic(&c.Controller)
+
+	documento := c.Ctx.Input.Param(":documento")
+
+	periods, err := services.GetPeriodoInfo(documento)
+	if err != nil {
+		beego.Error(err)
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
+	} else {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, periods)
+	}
+
+	c.ServeJSON()
+}
+
+// GetAllPeriodos ...
+// @Title GetAllPeriodos
+// @Description Obtiene los periodos de todos los usuarios
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Success 200 {object} []models.PeriodoRolUsuario
+// @Failure 404 not found resource
+// @router /periods [get]
+func (c *RolController) GetAllPeriodos() {
+	defer errorhandler.HandlePanic(&c.Controller)
+	var limit int64 
+	var offset int64
+
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+
+	response, err := services.GetAllPeriodosRoles(limit, offset)
+	if err != nil {
+		beego.Error(err)
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	} else {
 		c.Ctx.Output.SetStatus(200)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, response)

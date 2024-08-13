@@ -18,9 +18,27 @@ func init() {
 
     beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:RolController"] = append(beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:RolController"],
         beego.ControllerComments{
+            Method: "GetAllPeriodos",
+            Router: "/periods",
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:RolController"] = append(beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:RolController"],
+        beego.ControllerComments{
             Method: "RemoveRol",
             Router: "/remove",
             AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:RolController"] = append(beego.GlobalControllerRouter["github.com/udistrital/autenticacion_mid/controllers:RolController"],
+        beego.ControllerComments{
+            Method: "GetPeriodoInfo",
+            Router: "/user/:documento/periods",
+            AllowHTTPMethods: []string{"get"},
             MethodParams: param.Make(),
             Filters: nil,
             Params: nil})
