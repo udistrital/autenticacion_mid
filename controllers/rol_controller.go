@@ -79,7 +79,7 @@ func (c *RolController) RemoveRol() {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, nil, err.Error())
-	}
+	}       
 
 	if response, err := services.RemoveRol(v); err != nil {
 		beego.Error(err)
@@ -95,6 +95,7 @@ func (c *RolController) RemoveRol() {
 // GetPeriodoInfo ...
 // @Title GetPeriodoInfo
 // @Description Obtiene los periodos de roles de un usuario por su documento
+// @Param	sistema	query	int	false	"Sistema de informacion"
 // @Param	documento	path 	string	true	"Documento del usuario"
 // @Success 200 {object} []models.PeriodoRolUsuario
 // @Failure 404 not found resource
@@ -103,8 +104,13 @@ func (c *RolController) GetPeriodoInfo() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	documento := c.Ctx.Input.Param(":documento")
+	var sistema int
 
-	periods, err := services.GetPeriodoInfo(documento)
+	if v, err := c.GetInt("sistema"); err == nil {
+		sistema = v
+	}
+
+	periods, err := services.GetPeriodoInfo(documento, sistema)
 	if err != nil {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(404)
@@ -120,6 +126,7 @@ func (c *RolController) GetPeriodoInfo() {
 // GetAllPeriodos ...
 // @Title GetAllPeriodos
 // @Description Obtiene los periodos de todos los usuarios
+// @Param	sistema	query	string	false	"Sistema de informacion"
 // @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
 // @Success 200 {object} []models.PeriodoRolUsuario
@@ -127,8 +134,13 @@ func (c *RolController) GetPeriodoInfo() {
 // @router /periods [get]
 func (c *RolController) GetAllPeriodos() {
 	defer errorhandler.HandlePanic(&c.Controller)
+	var sistema int
 	var limit int64 
 	var offset int64
+
+	if v, err := c.GetInt("sistema"); err == nil {
+		sistema = v
+	}
 
 	if v, err := c.GetInt64("limit"); err == nil {
 		limit = v
@@ -138,7 +150,7 @@ func (c *RolController) GetAllPeriodos() {
 		offset = v
 	}
 
-	response, err := services.GetAllPeriodosRoles(limit, offset)
+	response, err := services.GetAllPeriodosRoles(sistema, limit, offset)
 	if err != nil {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(404)
