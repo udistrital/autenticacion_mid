@@ -10,9 +10,9 @@ import (
 	"github.com/udistrital/autenticacion_mid/models"
 )
 
-func GetPeriodoUsuario(documento string) (models.Response, error) {
+func GetPeriodoUsuario(documento string, sistema int) (models.Response, error) {
 	var PeriodoUsuario models.Response
-	urlGetPeriodoUsuario := httplib.Get(beego.AppConfig.String("HistoricoRolesCrudService") + "usuarios/" + documento + "/periodos")
+	urlGetPeriodoUsuario := httplib.Get(beego.AppConfig.String("HistoricoRolesCrudService") + "usuarios/" + documento + "/periodos?query=sistema_informacion:" + strconv.Itoa(int(sistema)))
 	urlGetPeriodoUsuario.Header("Accept", "application/json")
 
 	err := urlGetPeriodoUsuario.ToJSON(&PeriodoUsuario)
@@ -42,9 +42,10 @@ func GetTerceroInfo(documento string) (models.TerceroInfo, error) {
 	return TerceroInfo[0], nil
 }
 
-func GetAllPeriodos(limit int64, offset int64) (models.Response, error) {
+func GetAllPeriodos( sistema int, limit int64, offset int64) (models.Response, error) {
 	var response models.Response
-	urlGetPeriodos := httplib.Get(beego.AppConfig.String("HistoricoRolesCrudService") + "periodos-rol-usuarios/?limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset)))
+	urlGetPeriodos := httplib.Get(beego.AppConfig.String("HistoricoRolesCrudService") + 
+	"periodos-rol-usuarios?query=sistema_informacion:" + strconv.Itoa(int(sistema)) + "&limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset)))
 	urlGetPeriodos.Header("Accept", "application/json")
 
 	err := urlGetPeriodos.ToJSON(&response)
