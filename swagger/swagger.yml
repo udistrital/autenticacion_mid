@@ -33,6 +33,34 @@ paths:
           description: El rol ya está asignado al usuario
         "404":
           description: not found resource
+  /rol/periods:
+    get:
+      tags:
+      - rol
+      description: Obtiene los periodos de todos los usuarios
+      operationId: RolController.GetAllPeriodos
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.PeriodoRolUsuario'
+        "404":
+          description: not found resource
   /rol/remove:
     post:
       tags:
@@ -51,6 +79,39 @@ paths:
           description: ""
           schema:
             $ref: '#/definitions/models.ResponseDTO'
+        "404":
+          description: not found resource
+  /rol/user/{documento}/periods:
+    get:
+      tags:
+      - rol
+      description: Obtiene los periodos de roles de un usuario por su documento
+      operationId: RolController.GetPeriodoInfo
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: path
+        name: documento
+        description: Documento del usuario
+        required: true
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.PeriodoRolUsuario'
         "404":
           description: not found resource
   /token/documentoToken:
@@ -114,7 +175,7 @@ paths:
         "404":
           description: not found resource
 definitions:
-  113.0x14000286d20.false:
+  2346.0x1400033af90.false:
     title: "false"
     type: object
   models.Documento:
@@ -143,12 +204,35 @@ definitions:
         type: array
         items:
           type: string
+  models.PeriodoRolUsuario:
+    title: PeriodoRolUsuario
+    type: object
+    properties:
+      correo:
+        type: string
+      documento:
+        type: string
+      estado:
+        type: boolean
+      fecha_final:
+        type: string
+      fecha_inicial:
+        type: string
+      finalizado:
+        type: boolean
+      id_periodo:
+        type: integer
+        format: int64
+      nombre:
+        type: string
+      rol_usuario:
+        type: string
   models.ResponseDTO:
     title: ResponseDTO
     type: object
     properties:
       data:
-        $ref: '#/definitions/113.0x14000286d20.false'
+        $ref: '#/definitions/2346.0x1400033af90.false'
       message:
         type: string
       status:
