@@ -79,7 +79,7 @@ func (c *RolController) RemoveRol() {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, nil, err.Error())
-	}       
+	}
 
 	if response, err := services.RemoveRol(v); err != nil {
 		beego.Error(err)
@@ -135,7 +135,7 @@ func (c *RolController) GetPeriodoInfo() {
 func (c *RolController) GetAllPeriodos() {
 	defer errorhandler.HandlePanic(&c.Controller)
 	var sistema int
-	var limit int64 
+	var limit int64
 	var offset int64
 
 	if v, err := c.GetInt("sistema"); err == nil {
@@ -145,7 +145,7 @@ func (c *RolController) GetAllPeriodos() {
 	if v, err := c.GetInt64("limit"); err == nil {
 		limit = v
 	}
-	
+
 	if v, err := c.GetInt64("offset"); err == nil {
 		offset = v
 	}
@@ -156,8 +156,9 @@ func (c *RolController) GetAllPeriodos() {
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	} else {
+		metadata := map[string]interface{}{}
 		c.Ctx.Output.SetStatus(200)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, response)
+		c.Data["json"] = requestresponse.APIResponseMetadataDTO(true, 200, metadata, response)
 	}
 	c.ServeJSON()
 }
