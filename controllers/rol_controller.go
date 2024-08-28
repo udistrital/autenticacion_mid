@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"encoding/json"
+	"strings"
+	"errors"
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/autenticacion_mid/models"
@@ -95,22 +97,45 @@ func (c *RolController) RemoveRol() {
 // GetPeriodoInfo ...
 // @Title GetPeriodoInfo
 // @Description Obtiene los periodos de roles de un usuario por su documento
-// @Param	sistema	query	int	false	"Sistema de informacion"
+// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
 // @Param	documento	path 	string	true	"Documento del usuario"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
 // @Success 200 {object} []models.PeriodoRolUsuario
 // @Failure 404 not found resource
 // @router /user/:documento/periods [get]
 func (c *RolController) GetPeriodoInfo() {
 	defer errorhandler.HandlePanic(&c.Controller)
+	
+	var query = make(map[string]string)
+	var limit int64 
+	var offset int64
 
 	documento := c.Ctx.Input.Param(":documento")
-	var sistema int
 
-	if v, err := c.GetInt("sistema"); err == nil {
-		sistema = v
+	if v := c.GetString("query"); v != "" {
+		for _, cond := range strings.Split(v, ",") {
+			kv := strings.SplitN(cond, ":", 2)
+			if len(kv) != 2 {
+				c.Data["json"] = errors.New("Error: invalid query key/value pair")
+				c.ServeJSON()
+				return
+			}
+			k, v := kv[0], kv[1]
+			query[k] = v
+		}
 	}
 
-	periods, err := services.GetPeriodoInfo(documento, sistema)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+		
+
+	periods, err := services.GetPeriodoInfo(documento, query, limit, offset)
 	if err != nil {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(404)
@@ -126,7 +151,7 @@ func (c *RolController) GetPeriodoInfo() {
 // GetAllPeriodos ...
 // @Title GetAllPeriodos
 // @Description Obtiene los periodos de todos los usuarios
-// @Param	sistema	query	string	false	"Sistema de informacion"
+// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
 // @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
 // @Success 200 {object} []models.PeriodoRolUsuario
@@ -134,12 +159,22 @@ func (c *RolController) GetPeriodoInfo() {
 // @router /periods [get]
 func (c *RolController) GetAllPeriodos() {
 	defer errorhandler.HandlePanic(&c.Controller)
-	var sistema int
+
+	var query = make(map[string]string)
 	var limit int64 
 	var offset int64
 
-	if v, err := c.GetInt("sistema"); err == nil {
-		sistema = v
+	if v := c.GetString("query"); v != "" {
+		for _, cond := range strings.Split(v, ",") {
+			kv := strings.SplitN(cond, ":", 2)
+			if len(kv) != 2 {
+				c.Data["json"] = errors.New("Error: invalid query key/value pair")
+				c.ServeJSON()
+				return
+			}
+			k, v := kv[0], kv[1]
+			query[k] = v
+		}
 	}
 
 	if v, err := c.GetInt64("limit"); err == nil {
@@ -150,7 +185,7 @@ func (c *RolController) GetAllPeriodos() {
 		offset = v
 	}
 
-	response, err := services.GetAllPeriodosRoles(sistema, limit, offset)
+	response, err := services.GetAllPeriodosRoles(query, limit, offset)
 	if err != nil {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(404)
