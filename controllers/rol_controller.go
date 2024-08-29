@@ -158,7 +158,7 @@ func (c *RolController) GetAllPeriodos() {
 	} else {
 		metadata := map[string]interface{}{}
 		c.Ctx.Output.SetStatus(200)
-		c.Data["json"] = requestresponse.APIResponseMetadataDTO(true, 200, metadata, response)
+		c.Data["json"] = requestresponse.APIResponseMetadataDTO(true, 200, response, metadata)
 	}
 	c.ServeJSON()
 }
