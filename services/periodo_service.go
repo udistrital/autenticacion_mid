@@ -7,7 +7,7 @@ import (
 	"github.com/udistrital/autenticacion_mid/models"
 )
 
-func GetPeriodoInfo(documento string, sistema int) ([]models.PeriodoRolUsuario, error) {
+func GetPeriodoInfo(documento string, query map[string]string, limit int64, offset int64) ([]models.PeriodoRolUsuario, error) {
 
 	infoDocumento, err := helpers.GetInfoByDocumentoService(documento)
 	if err != nil {
@@ -23,7 +23,7 @@ func GetPeriodoInfo(documento string, sistema int) ([]models.PeriodoRolUsuario, 
 
 	}
 
-	periodoUsuario, err := helpers.GetPeriodoUsuario(documento, sistema)
+	periodoUsuario, err := helpers.GetPeriodoUsuario(documento, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("Error al obtener los periodos del usuario: %v", err)
 	}
@@ -52,8 +52,9 @@ func GetPeriodoInfo(documento string, sistema int) ([]models.PeriodoRolUsuario, 
 	return periodosRolUsuario, nil
 }
 
-func GetAllPeriodosRoles(sistema int, limit int64, offset int64) ([]models.PeriodoRolUsuario, error) {
-	periodosResponse, err := helpers.GetAllPeriodos(sistema, limit, offset)
+func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) ([]models.PeriodoRolUsuario, error) {
+	
+	periodosResponse, err := helpers.GetAllPeriodos(query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("Error al obtener todos los periodos: %v", err)
 	}
