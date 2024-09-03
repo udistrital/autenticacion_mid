@@ -6,6 +6,7 @@ Actualmente la API valida:
 
 - Código de los estudiantes por usuario
 - Validación de usuario por correo institucional
+- Validación de usuario por documento de identidad
 - Adición de roles a usuarios
 - Eliminación de roles a usuarios
 
@@ -23,6 +24,8 @@ Actualmente la API valida:
   CODE_BY_EMAIL_STUDENT_URL: [Servicio WSO2 de consulta de estudiantes]
   WSO2_AUTH_SERVICE: [Servicio WSO2 de Autenticación]
   WSO2_USER_SERVICE: [Servicio WSO2 de Usuarios]
+  HISTORICO_ROLES_SERVICE: [Servicio para gestión del histórico de roles de los usuarios]
+  TERCEROS_SERVICE: [Servicio de terceros]
 ```
 
 **NOTA:** Las variables se pueden ver en el fichero conf/app.conf y están identificadas con AUTENTICACION_MID_HTTP_PORT...
@@ -55,6 +58,9 @@ AUTENTICACION_MID_HTTP_PORT=8080 CODE_BY_EMAIL_STUDENT_URL=some_value bee run
 
 - **TestUserRol:** <span style="color: #4cc61e;"><b>Test OK</b></span>
 ![TestUserRol](tests/Unit%20Test/TestUserRol.png)
+
+- **TestDocumentoToken:** <span style="color: #4cc61e;"><b>Test OK</b></span>
+![TestDocumentoToken](tests/Unit%20Test/TestDocumentoToken.png)
 
 #### RolController
 
