@@ -3,24 +3,35 @@ workspace:
   path: src/github.com/udistrital/${DRONE_REPO##udistrital/}
   when:
       branch:
-      - master
+      - develop
       - release/*
+      - master
+
 kind: pipeline
 name: API_deploy
 
-steps: 
-  - name: go
-    image: golang:1.14
+trigger:
+  event:
+    exclude:
+      - tag
+
+steps:
+  - name: go_build
+    image: golang:1.18
     commands:
-     - go mod init
-     - go get -t
-     - GOOS=linux GOARCH=amd64 go build -o main
+    - go mod init
+    - go get -t
+    - GOOS=linux GOARCH=amd64 go build -o main
     when:
       branch:
+      - dependabot/**
+      - develop
+      - feature/*
+      - hotfix/*
       - master
       - release/*
       event:
-      - push 
+      - push
 
   - name: publish_to_ecr_release
     image: plugins/ecr
@@ -61,7 +72,7 @@ steps:
       - push
 
   - name: update_aws_ecs
-    image: golang:1.9
+    image: golang:1.18
     environment:
       AWS_ACCESS_KEY_ID:
         from_secret: AWS_ACCESS_KEY_ID
@@ -71,16 +82,16 @@ steps:
         from_secret: AWS_CONTAINER
     commands:
     - case ${DRONE_BRANCH} in
-         release/*)
-           AMBIENTE=test
-           CLUSTER=test
-           MYCONTAINER=$${AWS_CONTAINER}/${DRONE_REPO##udistrital/}:release
-           ;;
-         master)
-           AMBIENTE=prod
-           CLUSTER=oas
-           MYCONTAINER=$${AWS_CONTAINER}/${DRONE_REPO##udistrital/}:latest
-           ;;
+        release/*)
+          AMBIENTE=test
+          CLUSTER=test
+          MYCONTAINER=$${AWS_CONTAINER}/${DRONE_REPO##udistrital/}:release
+          ;;
+        master)
+          AMBIENTE=prod
+          CLUSTER=oas
+          MYCONTAINER=$${AWS_CONTAINER}/${DRONE_REPO##udistrital/}:latest
+          ;;
       esac
     - AWS_REGION=us-east-1
     - SERVICE=${DRONE_REPO##udistrital/}_$AMBIENTE
@@ -96,8 +107,8 @@ steps:
       - release/*
       - master
       event:
-      - push  
-  
+      - push
+
   - name: NotifyTelegram
     image: appleboy/drone-telegram
     settings:

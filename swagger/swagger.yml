@@ -11,16 +11,16 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0.html
 basePath: /v1
 paths:
-  /token/addRol:
+  /rol/add:
     post:
       tags:
-      - token
+      - rol
       description: Recibe el usuario y el rol
-      operationId: TokenController.AddRol
+      operationId: RolController.AddRol
       parameters:
       - in: body
         name: body
-        description: Usuario registrado en wso2, rol en wso2
+        description: Usuario y roles a adicionar
         required: true
         schema:
           $ref: '#/definitions/models.UpdateRol'
@@ -28,7 +28,29 @@ paths:
         "200":
           description: ""
           schema:
-            $ref: '#/definitions/models.Payload'
+            $ref: '#/definitions/models.ResponseDTO'
+        "400":
+          description: El rol ya está asignado al usuario
+        "404":
+          description: not found resource
+  /rol/remove:
+    post:
+      tags:
+      - rol
+      description: Recibe el usuario y el rol
+      operationId: RolController.RemoveRol
+      parameters:
+      - in: body
+        name: body
+        description: Usuario y rol a remover
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateRol'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.ResponseDTO'
         "404":
           description: not found resource
   /token/emailToken:
@@ -38,16 +60,17 @@ paths:
       description: Recibe el correo electrónico del usuario desde la autenticación
       operationId: TokenController.GetEmail
       parameters:
-      - in: path
-        name: email
+      - in: body
+        name: body
         description: The key for staticblock
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/models.Token'
       responses:
         "200":
           description: ""
           schema:
-            $ref: '#/definitions/models.Token'
+            $ref: '#/definitions/models.UserInfo'
         "404":
           description: not found resource
   /token/userRol:
@@ -71,6 +94,9 @@ paths:
         "404":
           description: not found resource
 definitions:
+  119.0xc00045f380.false:
+    title: "false"
+    type: object
   models.Payload:
     title: Payload
     type: object
@@ -91,6 +117,19 @@ definitions:
         type: array
         items:
           type: string
+  models.ResponseDTO:
+    title: ResponseDTO
+    type: object
+    properties:
+      data:
+        $ref: '#/definitions/119.0xc00045f380.false'
+      message:
+        type: string
+      status:
+        type: integer
+        format: int64
+      success:
+        type: boolean
   models.Token:
     title: Token
     type: object
@@ -105,6 +144,20 @@ definitions:
         type: string
       user:
         type: string
+  models.UserInfo:
+    title: UserInfo
+    type: object
+    properties:
+      Codigo:
+        type: string
+      Estado:
+        type: string
+      email:
+        type: string
+      rol:
+        type: array
+        items:
+          type: string
   models.UserName:
     title: UserName
     type: object
@@ -115,3 +168,6 @@ tags:
 - name: token
   description: |
     TokenController operations for Token
+- name: rol
+  description: |
+    RolController operations for Rol

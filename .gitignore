@@ -1,2 +1,25 @@
+# Binarios y temporales
+*.tmp
+*.log
+*.zip
+*.exe
+*~
 autenticacion_mid
-lastupdate.tmp
+main
+
+# IDEs y otros
+.vscode
+
+# Variables de Entorno
+*.env
+!template.env
+
+# Swagger
+swagger/**
+!swagger/swagger.json
+!swagger/swagger.yml
+
+
+# Go Archives
+go.mod
+go.sum
