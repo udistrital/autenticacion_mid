@@ -7,7 +7,7 @@ import (
 	"github.com/udistrital/autenticacion_mid/models"
 )
 
-func GetPeriodoInfo(documento string, query map[string]string, limit int64, offset int64) ([]models.PeriodoRolUsuario, error) {
+func GetPeriodoInfo(documento string, query map[string]string, limit int64, offset int64) (map[string]any, error) {
 
 	infoDocumento, err := helpers.GetInfoByDocumentoService(documento)
 	if err != nil {
@@ -49,7 +49,12 @@ func GetPeriodoInfo(documento string, query map[string]string, limit int64, offs
 		periodosRolUsuario = append(periodosRolUsuario, periodoRolUsuario)
 	}
 
-	return periodosRolUsuario, nil
+	response := map[string]any{
+		"Data":     periodosRolUsuario,
+		"Metadata": periodoUsuario.Metadata,
+	}
+
+	return response, nil
 }
 
 func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) (map[string]any, error) {

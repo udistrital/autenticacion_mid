@@ -11,8 +11,8 @@ import (
 	"github.com/udistrital/autenticacion_mid/models"
 )
 
-func GetPeriodoUsuario(documento string, query map[string]string, limit int64, offset int64) (models.Response, error) {
-	var PeriodoUsuario models.Response
+func GetPeriodoUsuario(documento string, query map[string]string, limit int64, offset int64) (models.MetadataResponse, error) {
+	var PeriodoUsuario models.MetadataResponse
 	var queryParams []string
 	for k, v := range query {
 		queryParams = append(queryParams, k+"="+v)
@@ -25,7 +25,7 @@ func GetPeriodoUsuario(documento string, query map[string]string, limit int64, o
 	err := urlGetPeriodoUsuario.ToJSON(&PeriodoUsuario)
 	if err != nil {
 
-		return models.Response{}, fmt.Errorf("error al obtener los roles del usuario %s", documento)
+		return models.MetadataResponse{}, fmt.Errorf("error al obtener los roles del usuario %s", documento)
 	}
 
 	return PeriodoUsuario, nil
