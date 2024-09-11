@@ -9,6 +9,7 @@ main
 
 # IDEs y otros
 .vscode
+.idea
 
 # Variables de Entorno
 *.env
@@ -23,3 +24,6 @@ swagger/**
 # Go Archives
 go.mod
 go.sum
+
+# Router file
+routers/commentsRouter___*

@@ -52,8 +52,8 @@ func GetPeriodoInfo(documento string, query map[string]string, limit int64, offs
 	return periodosRolUsuario, nil
 }
 
-func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) ([]models.PeriodoRolUsuario, error) {
-	
+func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) (map[string]any, error) {
+	var response map[string]any
 	periodosResponse, err := helpers.GetAllPeriodos(query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("Error al obtener todos los periodos: %v", err)
@@ -93,5 +93,10 @@ func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) ([]
 		})
 	}
 
-	return periodoRolUsuario, nil
+	response = map[string]interface{}{
+		"Data":     periodoRolUsuario,
+		"Metadata": periodosResponse.Metadata,
+	}
+
+	return response, nil
 }
