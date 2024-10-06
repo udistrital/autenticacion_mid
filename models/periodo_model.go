@@ -21,14 +21,7 @@ type Periodo struct {
 		FechaCreacion      string `json:"FechaCreacion"`
 		FechaModificacion  string `json:"FechaModificacion"`
 		Nombre             string `json:"Nombre"`
-		SistemaInformacion struct {
-			Id                int    `json:"Id"`
-			Activo            bool   `json:"Activo"`
-			FechaCreacion     string `json:"FechaCreacion"`
-			FechaModificacion string `json:"FechaModificacion"`
-			Nombre            string `json:"Nombre"`
-			Descripcion       string `json:"Descripcion"`
-		} `json:"SistemaInformacionId"`
+		SistemaInformacion any    `json:"SistemaInformacionId"`
 	} `json:"RolId"`
 }
 
@@ -38,6 +31,15 @@ type Response struct {
 	Status  int       `json:"Status"`
 	Success bool      `json:"Success"`
 }
+
+type MetadataResponse struct {
+	Data     []Periodo `json:"Data"`
+	Message  string    `json:"Message"`
+	Status   int       `json:"Status"`
+	Success  bool      `json:"Success"`
+	Metadata any       `json:"Metadata"`
+}
+
 type TerceroInfo struct {
 	Tercero struct {
 		Id             int    `json:"Id"`

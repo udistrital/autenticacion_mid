@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"encoding/json"
-	"strings"
 	"errors"
+	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/autenticacion_mid/models"
@@ -106,9 +106,9 @@ func (c *RolController) RemoveRol() {
 // @router /user/:documento/periods [get]
 func (c *RolController) GetPeriodoInfo() {
 	defer errorhandler.HandlePanic(&c.Controller)
-	
+
 	var query = make(map[string]string)
-	var limit int64 
+	var limit int64
 	var offset int64
 
 	documento := c.Ctx.Input.Param(":documento")
@@ -129,20 +129,21 @@ func (c *RolController) GetPeriodoInfo() {
 	if v, err := c.GetInt64("limit"); err == nil {
 		limit = v
 	}
-	
+
 	if v, err := c.GetInt64("offset"); err == nil {
 		offset = v
 	}
-		
 
-	periods, err := services.GetPeriodoInfo(documento, query, limit, offset)
+	periodsData, err := services.GetPeriodoInfo(documento, query, limit, offset)
 	if err != nil {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	} else {
+		data := periodsData["Data"].([]models.PeriodoRolUsuario)
+		metadata := periodsData["Metadata"].(map[string]interface{})
 		c.Ctx.Output.SetStatus(200)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, periods)
+		c.Data["json"] = requestresponse.APIResponseMetadataDTO(true, 200, data, metadata)
 	}
 
 	c.ServeJSON()
@@ -161,7 +162,7 @@ func (c *RolController) GetAllPeriodos() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	var query = make(map[string]string)
-	var limit int64 
+	var limit int64
 	var offset int64
 
 	if v := c.GetString("query"); v != "" {
@@ -185,15 +186,16 @@ func (c *RolController) GetAllPeriodos() {
 		offset = v
 	}
 
-	response, err := services.GetAllPeriodosRoles(query, limit, offset)
+	periodsData, err := services.GetAllPeriodosRoles(query, limit, offset)
 	if err != nil {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	} else {
-		metadata := map[string]interface{}{}
+		data := periodsData["Data"].([]models.PeriodoRolUsuario)
+		metadata := periodsData["Metadata"].(map[string]interface{})
 		c.Ctx.Output.SetStatus(200)
-		c.Data["json"] = requestresponse.APIResponseMetadataDTO(true, 200, response, metadata)
+		c.Data["json"] = requestresponse.APIResponseMetadataDTO(true, 200, data, metadata)
 	}
 	c.ServeJSON()
 }
