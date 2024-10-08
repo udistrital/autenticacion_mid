@@ -101,7 +101,7 @@ func (c *RolController) RemoveRol() {
 // @Param	documento	path 	string	true	"Documento del usuario"
 // @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
-// @Success 200 {object} []models.PeriodoRolUsuario
+// @Success 200 {object} []models.MetadataResponse
 // @Failure 404 not found resource
 // @router /user/:documento/periods [get]
 func (c *RolController) GetPeriodoInfo() {
@@ -155,7 +155,7 @@ func (c *RolController) GetPeriodoInfo() {
 // @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
 // @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
-// @Success 200 {object} []models.PeriodoRolUsuario
+// @Success 200 {object} []models.MetadataResponse
 // @Failure 404 not found resource
 // @router /periods [get]
 func (c *RolController) GetAllPeriodos() {

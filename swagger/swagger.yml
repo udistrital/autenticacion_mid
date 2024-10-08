@@ -58,7 +58,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/models.PeriodoRolUsuario'
+              $ref: '#/definitions/models.MetadataResponse'
         "404":
           description: not found resource
   /rol/remove:
@@ -111,7 +111,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/models.PeriodoRolUsuario'
+              $ref: '#/definitions/models.MetadataResponse'
         "404":
           description: not found resource
   /token/documentoToken:
@@ -175,7 +175,13 @@ paths:
         "404":
           description: not found resource
 definitions:
-  2346.0x1400033af90.false:
+  377.0x140002daed0.false:
+    title: "false"
+    type: object
+  645.0x140002daf00.false:
+    title: "false"
+    type: object
+  2274.0x140002db380.false:
     title: "false"
     type: object
   models.Documento:
@@ -184,6 +190,23 @@ definitions:
     properties:
       numero:
         type: string
+  models.MetadataResponse:
+    title: MetadataResponse
+    type: object
+    properties:
+      Data:
+        type: array
+        items:
+          $ref: '#/definitions/models.Periodo'
+      Message:
+        type: string
+      Metadata:
+        $ref: '#/definitions/models.any'
+      Status:
+        type: integer
+        format: int64
+      Success:
+        type: boolean
   models.Payload:
     title: Payload
     type: object
@@ -204,35 +227,35 @@ definitions:
         type: array
         items:
           type: string
-  models.PeriodoRolUsuario:
-    title: PeriodoRolUsuario
+  models.Periodo:
+    title: Periodo
     type: object
     properties:
-      correo:
-        type: string
-      documento:
-        type: string
-      estado:
+      Activo:
         type: boolean
-      fecha_final:
+      FechaCreacion:
         type: string
-      fecha_inicial:
+      FechaFin:
         type: string
-      finalizado:
+      FechaInicio:
+        type: string
+      FechaModificacion:
+        type: string
+      Finalizado:
         type: boolean
-      id_periodo:
+      Id:
         type: integer
         format: int64
-      nombre:
-        type: string
-      rol_usuario:
-        type: string
+      RolId:
+        $ref: '#/definitions/645.0x140002daf00.false'
+      UsuarioId:
+        $ref: '#/definitions/377.0x140002daed0.false'
   models.ResponseDTO:
     title: ResponseDTO
     type: object
     properties:
       data:
-        $ref: '#/definitions/2346.0x1400033af90.false'
+        $ref: '#/definitions/2274.0x140002db380.false'
       message:
         type: string
       status:
@@ -274,6 +297,9 @@ definitions:
     properties:
       user:
         type: string
+  models.any:
+    title: any
+    type: object
 tags:
 - name: token
   description: |
