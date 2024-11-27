@@ -153,6 +153,7 @@ func (c *RolController) GetPeriodoInfo() {
 // @Title GetAllPeriodos
 // @Description Obtiene los periodos de todos los usuarios
 // @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
+// @Param	RolId	query	string	false	"Filter by RolId. Accepts a comma-separated list of IDs. e.g. 1,2,3"
 // @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
 // @Success 200 {object} []models.MetadataResponse
@@ -177,7 +178,9 @@ func (c *RolController) GetAllPeriodos() {
 			query[k] = v
 		}
 	}
-
+	if v := c.GetString("RolId"); v != "" {
+		query["RolId"] = v // Añadir RolId a los parámetros de consulta
+	}
 	if v, err := c.GetInt64("limit"); err == nil {
 		limit = v
 	}
