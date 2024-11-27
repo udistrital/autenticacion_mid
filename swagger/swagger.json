@@ -65,6 +65,12 @@
                     },
                     {
                         "in": "query",
+                        "name": "RolId",
+                        "description": "Filter by RolId. Accepts a comma-separated list of IDs. e.g. 1,2,3",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
                         "name": "limit",
                         "description": "Limit the size of result set. Must be an integer",
                         "type": "string"
@@ -268,15 +274,15 @@
         }
     },
     "definitions": {
-        "2274.0x140002db380.false": {
+        "2347.0xc0002c4570.false": {
             "title": "false",
             "type": "object"
         },
-        "377.0x140002daed0.false": {
+        "387.0xc0002c40c0.false": {
             "title": "false",
             "type": "object"
         },
-        "645.0x140002daf00.false": {
+        "662.0xc0002c40f0.false": {
             "title": "false",
             "type": "object"
         },
@@ -371,10 +377,10 @@
                     "format": "int64"
                 },
                 "RolId": {
-                    "$ref": "#/definitions/645.0x140002daf00.false"
+                    "$ref": "#/definitions/662.0xc0002c40f0.false"
                 },
                 "UsuarioId": {
-                    "$ref": "#/definitions/377.0x140002daed0.false"
+                    "$ref": "#/definitions/387.0xc0002c40c0.false"
                 }
             }
         },
@@ -383,7 +389,7 @@
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/2274.0x140002db380.false"
+                    "$ref": "#/definitions/2347.0xc0002c4570.false"
                 },
                 "message": {
                     "type": "string"
