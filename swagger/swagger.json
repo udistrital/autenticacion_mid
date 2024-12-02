@@ -274,15 +274,15 @@
         }
     },
     "definitions": {
-        "2347.0xc0002c4570.false": {
+        "2274.0x140002e75f0.false": {
             "title": "false",
             "type": "object"
         },
-        "387.0xc0002c40c0.false": {
+        "377.0x140002e7140.false": {
             "title": "false",
             "type": "object"
         },
-        "662.0xc0002c40f0.false": {
+        "645.0x140002e7170.false": {
             "title": "false",
             "type": "object"
         },
@@ -377,10 +377,10 @@
                     "format": "int64"
                 },
                 "RolId": {
-                    "$ref": "#/definitions/662.0xc0002c40f0.false"
+                    "$ref": "#/definitions/645.0x140002e7170.false"
                 },
                 "UsuarioId": {
-                    "$ref": "#/definitions/387.0xc0002c40c0.false"
+                    "$ref": "#/definitions/377.0x140002e7140.false"
                 }
             }
         },
@@ -389,7 +389,7 @@
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/2347.0xc0002c4570.false"
+                    "$ref": "#/definitions/2274.0x140002e75f0.false"
                 },
                 "message": {
                     "type": "string"

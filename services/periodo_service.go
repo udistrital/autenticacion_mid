@@ -65,16 +65,32 @@ func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) (ma
 	}
 
 	var periodoRolUsuario []models.PeriodoRolUsuario
+	var errores []string
 
 	for _, periodos := range periodosResponse.Data {
 		terceroInfo, err := helpers.GetTerceroInfo(periodos.Usuario.Documento)
 		if err != nil {
-			return nil, fmt.Errorf("Error al obtener la información del tercero: %v", err)
+
+			periodoRolUsuario = append(periodoRolUsuario, models.PeriodoRolUsuario{
+				Nombre:       "No encontrado",
+				Documento:    periodos.Usuario.Documento,
+				Correo:       "No encontrado",
+				RolUsuario:   periodos.Rol.Nombre,
+				Estado:       periodos.Activo,
+				FechaInicial: periodos.FechaInicio,
+				FechaFinal:   periodos.FechaFin,
+				Finalizado:   periodos.Finalizado,
+				IdPeriodo:    int(periodos.Id),
+			})
+
+			errores = append(errores, fmt.Sprintf("Error al obtener la información del tercero con documento %s ", periodos.Usuario.Documento))
+			continue
 		}
 
 		infoDocumento, err := helpers.GetInfoByDocumentoService(periodos.Usuario.Documento)
 		if err != nil {
-			return nil, fmt.Errorf("Error al obtener la información del documento: %v", err)
+			errores = append(errores, fmt.Sprintf("Error al obtener la información del documento  %s ", periodos.Usuario.Documento))
+			continue
 		}
 		var correo string
 		if infoDocumento.Usuario != nil {
@@ -82,7 +98,6 @@ func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) (ma
 			if err != nil {
 				return nil, fmt.Errorf("Error al obtener la información del correo: %v", err)
 			}
-
 		}
 
 		periodoRolUsuario = append(periodoRolUsuario, models.PeriodoRolUsuario{
@@ -96,6 +111,14 @@ func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) (ma
 			Finalizado:   periodos.Finalizado,
 			IdPeriodo:    int(periodos.Id),
 		})
+	}
+
+	if len(errores) > 0 {
+		return map[string]any{
+			"Data":     periodoRolUsuario,
+			"Metadata": periodosResponse.Metadata,
+			"Errores":    errores,
+		}, nil
 	}
 
 	response = map[string]interface{}{
