@@ -45,6 +45,7 @@ func GetPeriodoInfo(documento string, query map[string]string, limit int64, offs
 			FechaFinal:   periodo.FechaFin,
 			Finalizado:   periodo.Finalizado,
 			IdPeriodo:    int(periodo.Id),
+			IdTercero:    int(terceroInfo.Tercero.Id),
 		}
 		periodosRolUsuario = append(periodosRolUsuario, periodoRolUsuario)
 	}
@@ -81,6 +82,7 @@ func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) (ma
 				FechaFinal:   periodos.FechaFin,
 				Finalizado:   periodos.Finalizado,
 				IdPeriodo:    int(periodos.Id),
+				IdTercero:    int(terceroInfo.Tercero.Id),
 			})
 
 			errores = append(errores, fmt.Sprintf("Error al obtener la información del tercero con documento %s ", periodos.Usuario.Documento))
@@ -110,6 +112,7 @@ func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) (ma
 			FechaFinal:   periodos.FechaFin,
 			Finalizado:   periodos.Finalizado,
 			IdPeriodo:    int(periodos.Id),
+			IdTercero:    int(terceroInfo.Tercero.Id),
 		})
 	}
 

@@ -64,4 +64,5 @@ type PeriodoRolUsuario struct {
 	FechaFinal   string `json:"fecha_final"`
 	Finalizado   bool   `json:"finalizado"`
 	IdPeriodo    int    `json:"id_periodo"`
+	IdTercero    int    `json:"id_tercero"`
 }
