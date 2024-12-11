@@ -2,8 +2,7 @@ package services
 
 import (
 	"errors"
-	"strings"
-
+	
 	"github.com/udistrital/autenticacion_mid/helpers"
 	"github.com/udistrital/autenticacion_mid/models"
 )
@@ -33,69 +32,48 @@ func GetInfoByEmail(m *models.Token) (u *models.UserInfo, err error) {
 	return u, nil
 }
 
-// GetRolesByUser ...
-func GetRolesByUser(user models.UserName) (roles *models.Payload, outputError map[string]interface{}) {
-	var familyName string
-	var documento string
-	var mail string
-	var documentoCompuesto string
+// GetRolesByUser
+func GetRolesByUser(user models.UserName) (*models.Payload, map[string]interface{}) {
 	userRoles := []string{}
 
 	RolesUsuario, err := helpers.GetRolesUsuario(user.User)
-
 	if err != nil {
-		outputError = map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": err}
+		outputError := map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": err}
 		return nil, outputError
 	}
 
 	if len(RolesUsuario.Usuario.Atributos) > 0 {
-		for _, v := range RolesUsuario.Usuario.Atributos {
-			switch v.Atributo {
-			case "role":
-				roles := strings.Split(v.Valor, ",")
-				for _, v := range roles {
-					userRoles = append(userRoles, v)
-				}
-			case "sn":
-				familyName = v.Valor
-			case "documento":
-				documento = v.Valor
-
-			case "documento_compuesto":
-				documentoCompuesto = v.Valor
-			case "mail":
-				mail = v.Valor
-			}
-
-			// fmt.Println(k, v)
-		}
-		payload := &models.Payload{
-			Role:               userRoles,
-			DocumentoCompuesto: documentoCompuesto,
-			Documento:          documento,
-			Email:              mail,
-			FamilyName:         familyName,
-		}
-
-		EstudianteInfo, err := helpers.GetCodeByEmailStudentService(mail)
-
+		payload, err := helpers.GetPayload(userRoles, RolesUsuario)
 		if err != nil {
-			outputError = map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": err}
+			outputError := map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": err}
 			return nil, outputError
 		}
-
-		if len(EstudianteInfo.EstudianteCollection.Estudiante) > 0 {
-			userRoles = append(userRoles, "ESTUDIANTE")
-			payload.Codigo = EstudianteInfo.EstudianteCollection.Estudiante[0].Codigo
-			payload.Estado = EstudianteInfo.EstudianteCollection.Estudiante[0].Estado
-			payload.Role = userRoles
-		}
-
 		return payload, nil
+	}
 
-	} else {
-		outputError = map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": "Usuario no registrado"}
+	outputError := map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": "Usuario no registrado"}
+	return nil, outputError
+}
 
+// GetInfoDocumento
+func GetInfoDocumento(user models.Documento) (*models.Payload, map[string]interface{}) {
+	userRoles := []string{}
+
+	RolesUsuario, err := helpers.GetInfoByDocumentoService(user.Numero)
+	if err != nil {
+		outputError := map[string]interface{}{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": err}
 		return nil, outputError
 	}
+
+	if len(RolesUsuario.Usuario.Atributos) > 0 {
+		payload, err := helpers.GetPayload(userRoles, RolesUsuario)
+		if err != nil {
+			outputError := map[string]interface{}{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": err}
+			return nil, outputError
+		}
+		return payload, nil
+	}
+
+	outputError := map[string]interface{}{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": "Usuario no registrado"}
+	return nil, outputError
 }

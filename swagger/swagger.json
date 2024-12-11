@@ -80,6 +80,37 @@
                 }
             }
         },
+        "/token/documentoToken": {
+            "post": {
+                "tags": [
+                    "token"
+                ],
+                "description": "Recibe el documento y devuelve información detallada del usuario",
+                "operationId": "TokenController.GetDocumento",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Documento del usuario",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Documento"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Payload"
+                        }
+                    },
+                    "404": {
+                        "description": "not found resource"
+                    }
+                }
+            }
+        },
         "/token/emailToken": {
             "post": {
                 "tags": [
@@ -144,9 +175,18 @@
         }
     },
     "definitions": {
-        "119.0xc00045f380.false": {
+        "113.0x14000286d20.false": {
             "title": "false",
             "type": "object"
+        },
+        "models.Documento": {
+            "title": "Documento",
+            "type": "object",
+            "properties": {
+                "numero": {
+                    "type": "string"
+                }
+            }
         },
         "models.Payload": {
             "title": "Payload",
@@ -183,7 +223,7 @@
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/119.0xc00045f380.false"
+                    "$ref": "#/definitions/113.0x14000286d20.false"
                 },
                 "message": {
                     "type": "string"

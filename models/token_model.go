@@ -6,12 +6,17 @@ type Token struct {
 	Email string `json:"email"`
 }
 
+// Documento structure
+type Documento struct {
+	Numero string `json:"numero"`
+}
+
 // UserName structure
 type UserName struct {
 	User string `json:"user"`
 }
 
-//Payload structure
+// Payload structure
 type Payload struct {
 	Role               []string `json:"role"`
 	Documento          string   `json:"documento"`
@@ -32,7 +37,7 @@ type EstudianteInfo struct {
 	} `json:"estudianteCollection"`
 }
 
-//AtributosToken structure
+// AtributosToken structure
 type AtributosToken struct {
 	Usuario *struct {
 		Atributos []struct {
