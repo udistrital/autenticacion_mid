@@ -77,3 +77,16 @@ func GetInfoDocumento(user models.Documento) (*models.Payload, map[string]interf
 	outputError := map[string]interface{}{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": "Usuario no registrado"}
 	return nil, outputError
 }
+
+// GetClientAuth
+func GetClientAuth(req models.ClientAuthRequestBody) (response models.ClientCredentialsResponse, outputError map[string]interface{}) {
+
+	if req.ClienteId == "" || req.Documento == "" {
+		outputError = map[string]interface{}{"Function": "TokenController:GetClientAuth", "Error": "Debe indicar un cliente y un documento"}
+	}
+
+	response, err := helpers.ClientCredentialsRequest(req.ClienteId)
+	outputError = map[string]interface{}{"Function": "TokenController:GetClientAuth", "Error": err}
+
+	return
+}

@@ -18,6 +18,7 @@ func (c *TokenController) URLMapping() {
 	c.Mapping("GetEmail", c.GetEmail)
 	c.Mapping("GetRol", c.GetRol)
 	c.Mapping("GetDocumento", c.GetDocumento)
+	c.Mapping("ClientAuth", c.ClientAuth)
 }
 
 // GetEmail ...
@@ -98,6 +99,34 @@ func (c *TokenController) GetDocumento() {
 	} else {
 		beego.Error(err)
 		c.Abort("400")
+	}
+
+	c.ServeJSON()
+}
+
+// ClientAuth ...
+// @Title ClientAuth
+// @Description Recibe el id del cliente y el numero de documento asociado
+// @Param	body	body	models.ClientAuthRequestBody	true	"ClienteId y Numero de Documento del usuario"
+// @Success 200 {object} models.ClientAuthRequestBody
+// @Failure 404 not found resource
+// @router /clientAuth [post]
+func (c *TokenController) ClientAuth() {
+
+	var body models.ClientAuthRequestBody
+
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, &body)
+	if err != nil {
+		beego.Error(err)
+		c.Abort("400")
+	}
+
+	response, error := services.GetClientAuth(body)
+	if error != nil {
+		beego.Error(error)
+		c.Abort("400")
+	} else {
+		c.Data["json"] = response
 	}
 
 	c.ServeJSON()

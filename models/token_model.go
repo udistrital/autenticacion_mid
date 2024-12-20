@@ -54,3 +54,15 @@ type UserInfo struct {
 	Email  string   `json:"email"`
 	Rol    []string `json:"rol"`
 }
+
+type ClientCredentialsResponse struct {
+	AccessToken string `json:"access_token"`
+	ExpiresIn   int    `json:"expires_in"`
+	Scope       string `json:"scope"`
+	TokenType   string `json:"token_type"`
+}
+
+type ClientAuthRequestBody struct {
+	Documento string `json:"documento"`
+	ClienteId string `json:"clienteId"`
+}
