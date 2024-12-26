@@ -99,3 +99,13 @@ func MapAtributos(RolesUsuario models.AtributosToken) (string, string, string, s
 
 	return familyName, documento, mail, documentoCompuesto, roles
 }
+
+func ClientCredentialsRequest(payload string) (response models.ClientCredentialsResponse, err error) {
+	request := httplib.Post(beego.AppConfig.String("Wso2Service"))
+	request.Header("Content-Type", "application/x-www-form-urlencoded")
+	request.Header("Authorization", "Basic "+payload)
+	request.Body("grant_type=client_credentials")
+	err = request.ToJSON(&response)
+
+	return
+}

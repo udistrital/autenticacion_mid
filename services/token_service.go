@@ -1,8 +1,10 @@
 package services
 
 import (
+	"encoding/base64"
 	"errors"
-	
+	"os"
+
 	"github.com/udistrital/autenticacion_mid/helpers"
 	"github.com/udistrital/autenticacion_mid/models"
 )
@@ -76,4 +78,30 @@ func GetInfoDocumento(user models.Documento) (*models.Payload, map[string]interf
 
 	outputError := map[string]interface{}{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": "Usuario no registrado"}
 	return nil, outputError
+}
+
+// GetClientAuth
+func GetClientAuth(req models.ClientAuthRequestBody) (response models.ClientCredentialsResponse, outputError map[string]interface{}) {
+
+	if req.ClienteId == "" || req.Documento == "" {
+		outputError = map[string]interface{}{"Function": "TokenController:GetClientAuth", "Error": "Debe indicar un cliente y un documento"}
+	}
+
+	decodedClientId, err := base64.StdEncoding.DecodeString(req.ClienteId)
+	if err != nil {
+		outputError = map[string]interface{}{"Function": "TokenController:GetClientAuth", "Error": err}
+	}
+
+	secret := os.Getenv("SECRET_CLIENT_" + string(decodedClientId))
+	if secret == "" {
+		outputError = map[string]interface{}{"Function": "TokenController:GetClientAuth", "Error": "No se pudo generar la autorización para el cliente indicado"}
+	}
+
+	encoded := base64.StdEncoding.EncodeToString([]byte(string(decodedClientId) + ":" + secret))
+	response, err = helpers.ClientCredentialsRequest(encoded)
+	if err != nil {
+		outputError = map[string]interface{}{"Function": "TokenController:GetClientAuth", "Error": err}
+	}
+
+	return
 }
