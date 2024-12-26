@@ -118,6 +118,26 @@ paths:
               $ref: '#/definitions/models.MetadataResponse'
         "404":
           description: not found resource
+  /token/clientAuth:
+    post:
+      tags:
+      - token
+      description: Recibe el id del cliente y el número de documento del usuario que solicita el token
+      operationId: TokenController.ClientAuth
+      parameters:
+      - in: body
+        name: body
+        description: ClienteId en base64 y Número de Documento del usuario
+        required: true
+        schema:
+          $ref: '#/definitions/models.ClientAuthRequestBody'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.ClientAuthRequestBody'
+        "404":
+          description: not found resource
   /token/documentoToken:
     post:
       tags:
@@ -188,6 +208,14 @@ definitions:
   2315.0x14000307320.false:
     title: "false"
     type: object
+  models.ClientAuthRequestBody:
+    title: ClientAuthRequestBody
+    type: object
+    properties:
+      clienteId:
+        type: string
+      documento:
+        type: string
   models.Documento:
     title: Documento
     type: object
