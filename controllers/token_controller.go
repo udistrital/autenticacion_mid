@@ -106,8 +106,8 @@ func (c *TokenController) GetDocumento() {
 
 // ClientAuth ...
 // @Title ClientAuth
-// @Description Recibe el id del cliente y el numero de documento asociado
-// @Param	body	body	models.ClientAuthRequestBody	true	"ClienteId y Numero de Documento del usuario"
+// @Description Recibe el id del cliente y el número de documento del usuario que solicita el token
+// @Param	body	body	models.ClientAuthRequestBody	true	"ClienteId en base64 y Número de Documento del usuario"
 // @Success 200 {object} models.ClientAuthRequestBody
 // @Failure 404 not found resource
 // @router /clientAuth [post]

@@ -122,12 +122,12 @@ paths:
     post:
       tags:
       - token
-      description: Recibe el id del cliente y el numero de documento asociado
+      description: Recibe el id del cliente y el número de documento del usuario que solicita el token
       operationId: TokenController.ClientAuth
       parameters:
       - in: body
         name: body
-        description: ClienteId y Numero de Documento del usuario
+        description: ClienteId en base64 y Número de Documento del usuario
         required: true
         schema:
           $ref: '#/definitions/models.ClientAuthRequestBody'
