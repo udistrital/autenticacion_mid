@@ -1,8 +1,5 @@
-FROM python:3
+FROM amazon/aws-cli:latest
 
-RUN apt-get update
-
-RUN pip install awscli
 WORKDIR /
 COPY entrypoint.sh entrypoint.sh
 COPY main main
