@@ -1,7 +1,6 @@
 FROM python:3
 
 RUN apt-get update
-RUN apt-get install libmcrypt-dev -y
 
 RUN pip install awscli
 WORKDIR /
