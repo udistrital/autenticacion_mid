@@ -1,4 +1,6 @@
 FROM python:3.9
+RUN apt-get update
+RUN apt-get install libmcrypt-dev -y
 RUN pip install awscli
 WORKDIR /
 COPY entrypoint.sh entrypoint.sh
