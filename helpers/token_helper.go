@@ -20,7 +20,7 @@ func GetRolesUsuario(email string) (models.AtributosToken, error) {
 	if err != nil {
 		return models.AtributosToken{}, fmt.Errorf("Error al obtener los roles del usuario %s", email)
 	}
-	
+
 	return RolesUsuario, nil
 }
 
@@ -33,27 +33,26 @@ func GetCodeByEmailStudentService(email string) (models.EstudianteInfo, error) {
 	if err != nil {
 		return models.EstudianteInfo{}, fmt.Errorf("Error al obtener el código del estudiante %s", email)
 	}
-	
+
 	return EstudianteInfo, nil
 }
-
 
 func GetInfoByDocumentoService(documento string) (models.AtributosToken, error) {
 	var RolesUsuario models.AtributosToken
 	urlGetInfoByDocumentoService := httplib.Get(beego.AppConfig.String("Wso2Service") + "usuario_documento?documento=" + documento)
 	urlGetInfoByDocumentoService.Header("Accept", "application/json")
-	
+
 	err := urlGetInfoByDocumentoService.ToJSON(&RolesUsuario)
 	if err != nil {
 		return models.AtributosToken{}, fmt.Errorf("Error al obtener la información del documento %s", documento)
 	}
-	
+
 	return RolesUsuario, nil
+
 }
 
-
 func GetPayload(userRoles []string, RolesUsuario models.AtributosToken) (*models.Payload, error) {
-	familyName, documento, mail, documentoCompuesto, roles := mapAtributos(RolesUsuario)
+	familyName, documento, mail, documentoCompuesto, roles := MapAtributos(RolesUsuario)
 
 	userRoles = append(userRoles, roles...)
 	payload := &models.Payload{
@@ -79,7 +78,7 @@ func GetPayload(userRoles []string, RolesUsuario models.AtributosToken) (*models
 	return payload, nil
 }
 
-func mapAtributos(RolesUsuario models.AtributosToken) (string, string, string, string, []string) {
+func MapAtributos(RolesUsuario models.AtributosToken) (string, string, string, string, []string) {
 	var familyName, documento, mail, documentoCompuesto string
 	var roles []string
 
@@ -99,4 +98,14 @@ func mapAtributos(RolesUsuario models.AtributosToken) (string, string, string, s
 	}
 
 	return familyName, documento, mail, documentoCompuesto, roles
+}
+
+func ClientCredentialsRequest(payload string) (response models.ClientCredentialsResponse, err error) {
+	request := httplib.Post(beego.AppConfig.String("Wso2Service"))
+	request.Header("Content-Type", "application/x-www-form-urlencoded")
+	request.Header("Authorization", "Basic "+payload)
+	request.Body("grant_type=client_credentials")
+	err = request.ToJSON(&response)
+
+	return
 }

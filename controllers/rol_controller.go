@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
+	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/autenticacion_mid/models"
@@ -19,6 +21,8 @@ type RolController struct {
 func (c *RolController) URLMapping() {
 	c.Mapping("AddRol", c.AddRol)
 	c.Mapping("RemoveRol", c.RemoveRol)
+	c.Mapping("GetPeriodoInfo", c.GetPeriodoInfo)
+	c.Mapping("GetAllPeriodos", c.GetAllPeriodos)
 }
 
 // AddRol ...
@@ -86,6 +90,121 @@ func (c *RolController) RemoveRol() {
 	} else {
 		c.Ctx.Output.SetStatus(200)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, response)
+	}
+	c.ServeJSON()
+}
+
+// GetPeriodoInfo ...
+// @Title GetPeriodoInfo
+// @Description Obtiene los periodos de roles de un usuario por su documento
+// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
+// @Param	documento	path 	string	true	"Documento del usuario"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Success 200 {object} []models.MetadataResponse
+// @Failure 404 not found resource
+// @router /user/:documento/periods [get]
+func (c *RolController) GetPeriodoInfo() {
+	defer errorhandler.HandlePanic(&c.Controller)
+
+	var query = make(map[string]string)
+	var limit int64
+	var offset int64
+
+	documento := c.Ctx.Input.Param(":documento")
+
+	if v := c.GetString("query"); v != "" {
+		for _, cond := range strings.Split(v, ",") {
+			kv := strings.SplitN(cond, ":", 2)
+			if len(kv) != 2 {
+				c.Data["json"] = errors.New("Error: invalid query key/value pair")
+				c.ServeJSON()
+				return
+			}
+			k, v := kv[0], kv[1]
+			query[k] = v
+		}
+	}
+
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+
+	periodsData, err := services.GetPeriodoInfo(documento, query, limit, offset)
+	if err != nil {
+		beego.Error(err)
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
+	} else {
+		data := periodsData["Data"].([]models.PeriodoRolUsuario)
+		metadata := periodsData["Metadata"].(map[string]interface{})
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseMetadataDTO(true, 200, data, metadata)
+	}
+
+	c.ServeJSON()
+}
+
+// GetAllPeriodos ...
+// @Title GetAllPeriodos
+// @Description Obtiene los periodos de todos los usuarios
+// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
+// @Param	RolId	query	string	false	"Filter by RolId. Accepts a comma-separated list of IDs. e.g. 1,2,3"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Success 200 {object} []models.MetadataResponse
+// @Failure 404 not found resource
+// @router /periods [get]
+func (c *RolController) GetAllPeriodos() {
+	defer errorhandler.HandlePanic(&c.Controller)
+
+	var query = make(map[string]string)
+	var limit int64
+	var offset int64
+
+	if v := c.GetString("query"); v != "" {
+		for _, cond := range strings.Split(v, ",") {
+			kv := strings.SplitN(cond, ":", 2)
+			if len(kv) != 2 {
+				c.Data["json"] = errors.New("Error: invalid query key/value pair")
+				c.ServeJSON()
+				return
+			}
+			k, v := kv[0], kv[1]
+			query[k] = v
+		}
+	}
+	if v := c.GetString("RolId"); v != "" {
+		query["RolId"] = v // Añadir RolId a los parámetros de consulta
+	}
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+
+	periodsData, err := services.GetAllPeriodosRoles(query, limit, offset)
+	if err != nil {
+		beego.Error(err)
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
+	} else {
+		data := periodsData["Data"].([]models.PeriodoRolUsuario)
+		metadata := periodsData["Metadata"].(map[string]interface{})
+		errores:= periodsData["Errores"]
+		if errores != nil {
+			c.Ctx.Output.SetStatus(200)
+			c.Data["json"] = requestresponse.APIResponseMetadataDTO(true, 200, data, metadata, errores)
+		} else {
+			c.Ctx.Output.SetStatus(200)
+			c.Data["json"] = requestresponse.APIResponseMetadataDTO(true, 200, data, metadata)
+		}
 	}
 	c.ServeJSON()
 }

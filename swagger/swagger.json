@@ -49,6 +49,55 @@
                 }
             }
         },
+        "/rol/periods": {
+            "get": {
+                "tags": [
+                    "rol"
+                ],
+                "description": "Obtiene los periodos de todos los usuarios",
+                "operationId": "RolController.GetAllPeriodos",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "RolId",
+                        "description": "Filter by RolId. Accepts a comma-separated list of IDs. e.g. 1,2,3",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.MetadataResponse"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found resource"
+                    }
+                }
+            }
+        },
         "/rol/remove": {
             "post": {
                 "tags": [
@@ -72,6 +121,87 @@
                         "description": "",
                         "schema": {
                             "$ref": "#/definitions/models.ResponseDTO"
+                        }
+                    },
+                    "404": {
+                        "description": "not found resource"
+                    }
+                }
+            }
+        },
+        "/rol/user/{documento}/periods": {
+            "get": {
+                "tags": [
+                    "rol"
+                ],
+                "description": "Obtiene los periodos de roles de un usuario por su documento",
+                "operationId": "RolController.GetPeriodoInfo",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "documento",
+                        "description": "Documento del usuario",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.MetadataResponse"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found resource"
+                    }
+                }
+            }
+        },
+        "/token/clientAuth": {
+            "post": {
+                "tags": [
+                    "token"
+                ],
+                "description": "Recibe el id del cliente y el número de documento del usuario que solicita el token",
+                "operationId": "TokenController.ClientAuth",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "ClienteId en base64 y Número de Documento del usuario",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ClientAuthRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.ClientAuthRequestBody"
                         }
                     },
                     "404": {
@@ -175,9 +305,29 @@
         }
     },
     "definitions": {
-        "113.0x14000286d20.false": {
+        "2315.0x14000307320.false": {
             "title": "false",
             "type": "object"
+        },
+        "377.0x14000306e70.false": {
+            "title": "false",
+            "type": "object"
+        },
+        "645.0x14000306ea0.false": {
+            "title": "false",
+            "type": "object"
+        },
+        "models.ClientAuthRequestBody": {
+            "title": "ClientAuthRequestBody",
+            "type": "object",
+            "properties": {
+                "clienteId": {
+                    "type": "string"
+                },
+                "documento": {
+                    "type": "string"
+                }
+            }
         },
         "models.Documento": {
             "title": "Documento",
@@ -185,6 +335,31 @@
             "properties": {
                 "numero": {
                     "type": "string"
+                }
+            }
+        },
+        "models.MetadataResponse": {
+            "title": "MetadataResponse",
+            "type": "object",
+            "properties": {
+                "Data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Periodo"
+                    }
+                },
+                "Message": {
+                    "type": "string"
+                },
+                "Metadata": {
+                    "$ref": "#/definitions/models.any"
+                },
+                "Status": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -218,12 +393,46 @@
                 }
             }
         },
+        "models.Periodo": {
+            "title": "Periodo",
+            "type": "object",
+            "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
+                "FechaCreacion": {
+                    "type": "string"
+                },
+                "FechaFin": {
+                    "type": "string"
+                },
+                "FechaInicio": {
+                    "type": "string"
+                },
+                "FechaModificacion": {
+                    "type": "string"
+                },
+                "Finalizado": {
+                    "type": "boolean"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "RolId": {
+                    "$ref": "#/definitions/645.0x14000306ea0.false"
+                },
+                "UsuarioId": {
+                    "$ref": "#/definitions/377.0x14000306e70.false"
+                }
+            }
+        },
         "models.ResponseDTO": {
             "title": "ResponseDTO",
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/113.0x14000286d20.false"
+                    "$ref": "#/definitions/2315.0x14000307320.false"
                 },
                 "message": {
                     "type": "string"
@@ -287,6 +496,10 @@
                     "type": "string"
                 }
             }
+        },
+        "models.any": {
+            "title": "any",
+            "type": "object"
         }
     },
     "tags": [
