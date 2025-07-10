@@ -95,6 +95,7 @@ func GetClientAuth(req models.ClientAuthRequestBody) (response models.ClientCred
 	secret := os.Getenv("SECRET_CLIENT_" + string(decodedClientId))
 	if secret == "" {
 		outputError = map[string]interface{}{"Function": "TokenController:GetClientAuth", "Error": "No se pudo generar la autorización para el cliente indicado"}
+		return
 	}
 
 	encoded := base64.StdEncoding.EncodeToString([]byte(string(decodedClientId) + ":" + secret))
