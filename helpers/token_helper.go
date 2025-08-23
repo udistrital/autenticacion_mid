@@ -13,7 +13,7 @@ import (
 
 func GetRolesUsuario(email string) (models.AtributosToken, error) {
 	var RolesUsuario models.AtributosToken
-	urlGetRolesUsuario := httplib.Get(beego.AppConfig.String("Wso2Service") + "roles?usuario=" + email)
+	urlGetRolesUsuario := httplib.Get(beego.AppConfig.String("AutenticacionCrudService") + "roles?usuario=" + email)
 	urlGetRolesUsuario.Header("Accept", "application/json")
 
 	err := urlGetRolesUsuario.ToJSON(&RolesUsuario)
