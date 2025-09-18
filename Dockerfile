@@ -1,5 +1,4 @@
-FROM python:3
-RUN pip install awscli
+FROM alpine:latest
 WORKDIR /
 COPY entrypoint.sh entrypoint.sh
 COPY main main
