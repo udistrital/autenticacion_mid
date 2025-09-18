@@ -13,7 +13,7 @@ import (
 
 func GetRolesUsuario(email string) (models.AtributosToken, error) {
 	var RolesUsuario models.AtributosToken
-	urlGetRolesUsuario := httplib.Get(beego.AppConfig.String("Wso2Service") + "roles?usuario=" + email)
+	urlGetRolesUsuario := httplib.Get(beego.AppConfig.String("AutenticacionCrudService") + "roles?usuario=" + email)
 	urlGetRolesUsuario.Header("Accept", "application/json")
 
 	err := urlGetRolesUsuario.ToJSON(&RolesUsuario)
@@ -101,7 +101,7 @@ func MapAtributos(RolesUsuario models.AtributosToken) (string, string, string, s
 }
 
 func ClientCredentialsRequest(payload string) (response models.ClientCredentialsResponse, err error) {
-	request := httplib.Post(beego.AppConfig.String("Wso2Service"))
+	request := httplib.Post(beego.AppConfig.String("Wso2AuthService") + "apioas/token")
 	request.Header("Content-Type", "application/x-www-form-urlencoded")
 	request.Header("Authorization", "Basic "+payload)
 	request.Body("grant_type=client_credentials")
