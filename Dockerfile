@@ -1,5 +1,4 @@
-FROM amazon/aws-cli:latest
-
+FROM alpine:latest
 WORKDIR /
 COPY entrypoint.sh entrypoint.sh
 COPY main main
