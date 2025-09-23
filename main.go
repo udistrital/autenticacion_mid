@@ -5,6 +5,7 @@ import (
 	"github.com/astaxie/beego/plugins/cors"
 	_ "github.com/udistrital/autenticacion_mid/routers"
 	apistatus "github.com/udistrital/utils_oas/apiStatusLib"
+	auditoria "github.com/udistrital/utils_oas/auditoria"
 	"github.com/udistrital/utils_oas/customerror"
 	"github.com/udistrital/utils_oas/xray"
 )
@@ -22,6 +23,8 @@ func main() {
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin"},
 		AllowCredentials: true,
 	}))
+
+	auditoria.InitMiddleware()
 	xray.InitXRay()
 	beego.ErrorController(&customerror.CustomErrorController{})
 	apistatus.Init()
