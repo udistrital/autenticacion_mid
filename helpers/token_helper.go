@@ -6,18 +6,20 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/httplib"
+	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/autenticacion_mid/models"
+	"github.com/udistrital/utils_oas/request"
 )
 
 // Get_Methods
 
 func GetRolesUsuario(email string) (models.AtributosToken, error) {
 	var RolesUsuario models.AtributosToken
-	urlGetRolesUsuario := httplib.Get(beego.AppConfig.String("AutenticacionCrudService") + "roles?usuario=" + email)
-	urlGetRolesUsuario.Header("Accept", "application/json")
+	urlGetRolesUsuario := beego.AppConfig.String("AutenticacionCrudService") + "roles?usuario=" + email
 
-	err := urlGetRolesUsuario.ToJSON(&RolesUsuario)
+	err := request.GetJson(urlGetRolesUsuario, &RolesUsuario)
 	if err != nil {
+		logs.Info("Error", err)
 		return models.AtributosToken{}, fmt.Errorf("Error al obtener los roles del usuario %s", email)
 	}
 
@@ -26,11 +28,11 @@ func GetRolesUsuario(email string) (models.AtributosToken, error) {
 
 func GetCodeByEmailStudentService(email string) (models.EstudianteInfo, error) {
 	var EstudianteInfo models.EstudianteInfo
-	urlGetCodeByEmailStudentService := httplib.Get(beego.AppConfig.String("GetCodeByEmailStudentService") + email)
-	urlGetCodeByEmailStudentService.Header("Accept", "application/json")
+	urlGetCodeByEmailStudentService := beego.AppConfig.String("GetCodeByEmailStudentService") + email
+	err := request.GetXml(urlGetCodeByEmailStudentService, &EstudianteInfo)
 
-	err := urlGetCodeByEmailStudentService.ToJSON(&EstudianteInfo)
 	if err != nil {
+		logs.Info("Error", err)
 		return models.EstudianteInfo{}, fmt.Errorf("Error al obtener el código del estudiante %s", email)
 	}
 
