@@ -28,8 +28,9 @@ func GetRolesUsuario(email string) (models.AtributosToken, error) {
 
 func GetCodeByEmailStudentService(email string) (models.EstudianteInfo, error) {
 	var EstudianteInfo models.EstudianteInfo
-	urlGetCodeByEmailStudentService := beego.AppConfig.String("GetCodeByEmailStudentService") + email
-	err := request.GetXml(urlGetCodeByEmailStudentService, &EstudianteInfo)
+	urlGetCodeByEmailStudentService := httplib.Get(beego.AppConfig.String("GetCodeByEmailStudentService") + email)
+	urlGetCodeByEmailStudentService.Header("Accept", "application/json")
+	err := urlGetCodeByEmailStudentService.ToJSON(&EstudianteInfo)
 
 	if err != nil {
 		logs.Info("Error", err)
