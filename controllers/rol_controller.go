@@ -197,7 +197,7 @@ func (c *RolController) GetAllPeriodos() {
 	} else {
 		data := periodsData["Data"].([]models.PeriodoRolUsuario)
 		metadata := periodsData["Metadata"].(map[string]interface{})
-		errores:= periodsData["Errores"]
+		errores := periodsData["Errores"]
 		if errores != nil {
 			c.Ctx.Output.SetStatus(200)
 			c.Data["json"] = requestresponse.APIResponseMetadataDTO(true, 200, data, metadata, errores)
