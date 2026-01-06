@@ -44,7 +44,7 @@ func GetRolesByUser(user models.UserName) (*models.Payload, map[string]interface
 		return nil, outputError
 	}
 
-	if len(RolesUsuario.Usuario.Atributos) > 0 {
+	if RolesUsuario.Usuario != nil && len(RolesUsuario.Usuario.Atributos) > 0 {
 		payload, err := helpers.GetPayload(userRoles, RolesUsuario)
 		if err != nil {
 			outputError := map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": err}
