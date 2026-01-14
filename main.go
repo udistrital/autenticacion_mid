@@ -11,13 +11,15 @@ import (
 )
 
 func main() {
-
-	if beego.BConfig.RunMode == "dev" {
+	allowedOrigins := []string{"*.udistrital.edu.co"}
+	if beego.BConfig.RunMode == beego.DEV {
+		allowedOrigins = []string{"*"}
 		beego.BConfig.WebConfig.DirectoryIndex = true
 		beego.BConfig.WebConfig.StaticDir["/swagger"] = "swagger"
 	}
+
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
-		AllowAllOrigins:  true,
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Content-Type"},
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin"},

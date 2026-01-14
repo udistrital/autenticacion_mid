@@ -20,10 +20,5 @@ swagger/**
 !swagger/swagger.json
 !swagger/swagger.yml
 
-
-# Go Archives
-go.mod
-go.sum
-
 # Router file
 routers/commentsRouter___*

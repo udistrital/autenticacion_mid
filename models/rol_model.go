@@ -8,13 +8,13 @@ type UpdateRol struct {
 	Rol  string `json:"rol"`
 }
 
-//Body UpdatePerfil structure
+// Body UpdatePerfil structure
 type UpdatePerfil struct {
 	UmId        int    `json:"um_id"`
 	UmAttrValue string `json:"um_attr_value"`
 }
 
-//Body AddPerfil structure
+// Body AddPerfil structure
 type AddPerfil struct {
 	UmUserId    int    `json:"um_user_id"`
 	UmAttrValue string `json:"um_attr_value"`
