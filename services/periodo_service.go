@@ -120,7 +120,7 @@ func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) (ma
 		return map[string]any{
 			"Data":     periodoRolUsuario,
 			"Metadata": periodosResponse.Metadata,
-			"Errores":    errores,
+			"Errores":  errores,
 		}, nil
 	}
 
