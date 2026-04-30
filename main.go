@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/plugins/cors"
 	_ "github.com/udistrital/autenticacion_mid/routers"
 	apistatus "github.com/udistrital/utils_oas/apiStatusLib"
@@ -27,7 +28,9 @@ func main() {
 	}))
 
 	auditoria.InitMiddleware()
-	xray.InitXRay()
+	if err := xray.InitXRay(); err != nil {
+		logs.Error(err)
+	}
 	beego.ErrorController(&customerror.CustomErrorController{})
 	apistatus.Init()
 	beego.Run()

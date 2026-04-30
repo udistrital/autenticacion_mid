@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -13,11 +14,11 @@ import (
 
 // Get_Methods
 
-func GetRolesUsuario(email string) (models.AtributosToken, error) {
+func GetRolesUsuario(ctx context.Context, email string) (models.AtributosToken, error) {
 	var RolesUsuario models.AtributosToken
 	urlGetRolesUsuario := beego.AppConfig.String("AutenticacionCrudService") + "roles?usuario=" + email
 
-	err := request.GetJson(urlGetRolesUsuario, &RolesUsuario)
+	_, err := request.GetWithContext(ctx, urlGetRolesUsuario, &RolesUsuario)
 	if err != nil {
 		logs.Info("Error", err)
 		return models.AtributosToken{}, fmt.Errorf("Error al obtener los roles del usuario %s", email)
@@ -26,11 +27,10 @@ func GetRolesUsuario(email string) (models.AtributosToken, error) {
 	return RolesUsuario, nil
 }
 
-func GetCodeByEmailStudentService(email string) (models.EstudianteInfo, error) {
+func GetCodeByEmailStudentService(ctx context.Context, email string) (models.EstudianteInfo, error) {
 	var EstudianteInfo models.EstudianteInfo
-	urlGetCodeByEmailStudentService := httplib.Get(beego.AppConfig.String("GetCodeByEmailStudentService") + email)
-	urlGetCodeByEmailStudentService.Header("Accept", "application/json")
-	err := urlGetCodeByEmailStudentService.ToJSON(&EstudianteInfo)
+	urlGetCodeByEmailStudentService := beego.AppConfig.String("GetCodeByEmailStudentService") + email
+	_, err := request.GetWithContext(ctx, urlGetCodeByEmailStudentService, &EstudianteInfo)
 
 	if err != nil {
 		logs.Info("Error", err)
@@ -40,12 +40,11 @@ func GetCodeByEmailStudentService(email string) (models.EstudianteInfo, error) {
 	return EstudianteInfo, nil
 }
 
-func GetInfoByDocumentoService(documento string) (models.AtributosToken, error) {
+func GetInfoByDocumentoService(ctx context.Context, documento string) (models.AtributosToken, error) {
 	var RolesUsuario models.AtributosToken
-	urlGetInfoByDocumentoService := httplib.Get(beego.AppConfig.String("Wso2Service") + "usuario_documento?documento=" + documento)
-	urlGetInfoByDocumentoService.Header("Accept", "application/json")
+	urlGetInfoByDocumentoService := beego.AppConfig.String("Wso2Service") + "usuario_documento?documento=" + documento
 
-	err := urlGetInfoByDocumentoService.ToJSON(&RolesUsuario)
+	_, err := request.GetWithContext(ctx, urlGetInfoByDocumentoService, &RolesUsuario)
 	if err != nil {
 		return models.AtributosToken{}, fmt.Errorf("Error al obtener la información del documento %s", documento)
 	}
@@ -54,7 +53,7 @@ func GetInfoByDocumentoService(documento string) (models.AtributosToken, error) 
 
 }
 
-func GetPayload(userRoles []string, RolesUsuario models.AtributosToken) (*models.Payload, error) {
+func GetPayload(ctx context.Context, userRoles []string, RolesUsuario models.AtributosToken) (*models.Payload, error) {
 	familyName, documento, mail, documentoCompuesto, roles := MapAtributos(RolesUsuario)
 
 	userRoles = append(userRoles, roles...)
@@ -66,7 +65,7 @@ func GetPayload(userRoles []string, RolesUsuario models.AtributosToken) (*models
 		FamilyName:         familyName,
 	}
 
-	EstudianteInfo, err := GetCodeByEmailStudentService(mail)
+	EstudianteInfo, err := GetCodeByEmailStudentService(ctx, mail)
 	if err != nil {
 		return nil, err
 	}

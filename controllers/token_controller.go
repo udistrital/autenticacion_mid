@@ -33,9 +33,10 @@ func (c *TokenController) GetEmail() { // ? No se usa el APIResponseDTO debido a
 	var (
 		v models.Token
 	)
+	ctx := c.Ctx.Request.Context()
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-		if response, err := services.GetInfoByEmail(&v); err == nil {
+		if response, err := services.GetInfoByEmail(ctx, &v); err == nil {
 			c.Data["json"] = response
 		} else {
 			beego.Error(err)
@@ -61,9 +62,10 @@ func (c *TokenController) GetRol() { // ? No se usa el APIResponseDTO debido a q
 	var (
 		v models.UserName
 	)
+	ctx := c.Ctx.Request.Context()
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-		if response, err := services.GetRolesByUser(v); err == nil {
+		if response, err := services.GetRolesByUser(ctx, v); err == nil {
 			c.Data["json"] = response
 		} else {
 			c.Data["system"] = err
@@ -89,9 +91,10 @@ func (c *TokenController) GetDocumento() {
 	var (
 		v models.Documento
 	)
+	ctx := c.Ctx.Request.Context()
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-		if response, err := services.GetInfoDocumento(v); err == nil {
+		if response, err := services.GetInfoDocumento(ctx, v); err == nil {
 			c.Data["json"] = response
 		} else {
 			beego.Error(err)
