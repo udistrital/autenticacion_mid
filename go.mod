@@ -6,7 +6,7 @@ require (
 	github.com/astaxie/beego v1.12.3
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/stretchr/testify v1.11.1
-	github.com/udistrital/utils_oas v0.3.2
+	github.com/udistrital/utils_oas v0.5.0-beta.3
 )
 
 require (

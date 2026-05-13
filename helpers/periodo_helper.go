@@ -1,17 +1,18 @@
 package helpers
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 
 	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/httplib"
 	"github.com/udistrital/autenticacion_mid/models"
+	"github.com/udistrital/utils_oas/request"
 )
 
-func GetPeriodoUsuario(documento string, query map[string]string, limit int64, offset int64) (models.MetadataResponse, error) {
+func GetPeriodoUsuario(ctx context.Context, documento string, query map[string]string, limit int64, offset int64) (models.MetadataResponse, error) {
 	var PeriodoUsuario models.MetadataResponse
 	var queryParams []string
 	for k, v := range query {
@@ -19,10 +20,9 @@ func GetPeriodoUsuario(documento string, query map[string]string, limit int64, o
 	}
 	queryString := strings.Join(queryParams, "&")
 
-	urlGetPeriodoUsuario := httplib.Get(beego.AppConfig.String("HistoricoRolesCrudService") + "usuarios/" + documento + "/periodos?" + queryString + "&limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset)))
-	urlGetPeriodoUsuario.Header("Accept", "application/json")
+	urlGetPeriodoUsuario := beego.AppConfig.String("HistoricoRolesCrudService") + "usuarios/" + documento + "/periodos?" + queryString + "&limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset))
 
-	err := urlGetPeriodoUsuario.ToJSON(&PeriodoUsuario)
+	_, err := request.GetWithContext(ctx, urlGetPeriodoUsuario, &PeriodoUsuario)
 	if err != nil {
 
 		return models.MetadataResponse{}, fmt.Errorf("error al obtener los roles del usuario %s", documento)
@@ -31,13 +31,11 @@ func GetPeriodoUsuario(documento string, query map[string]string, limit int64, o
 	return PeriodoUsuario, nil
 }
 
-func GetTerceroInfo(documento string) (models.TerceroInfo, error) {
+func GetTerceroInfo(ctx context.Context, documento string) (models.TerceroInfo, error) {
 	var TerceroInfo []models.TerceroInfo
-	urlGetTerceroInfo := httplib.Get(beego.AppConfig.String("TercerosService") + "tercero/identificacion?query=" + documento)
+	urlGetTerceroInfo := beego.AppConfig.String("TercerosService") + "tercero/identificacion?query=" + documento
 
-	urlGetTerceroInfo.Header("Accept", "application/json")
-
-	err := urlGetTerceroInfo.ToJSON(&TerceroInfo)
+	_, err := request.GetWithContext(ctx, urlGetTerceroInfo, &TerceroInfo)
 	if err != nil {
 		return models.TerceroInfo{}, fmt.Errorf("error al obtener la información del tercero con documento %s", documento)
 	}
@@ -49,7 +47,7 @@ func GetTerceroInfo(documento string) (models.TerceroInfo, error) {
 	return TerceroInfo[0], nil
 }
 
-func GetAllPeriodos(query map[string]string, limit int64, offset int64) (models.MetadataResponse, error) {
+func GetAllPeriodos(ctx context.Context, query map[string]string, limit int64, offset int64) (models.MetadataResponse, error) {
 	var response models.MetadataResponse
 	var queryParams []string
 	for k, v := range query {
@@ -57,11 +55,10 @@ func GetAllPeriodos(query map[string]string, limit int64, offset int64) (models.
 	}
 	queryString := strings.Join(queryParams, "&")
 
-	urlGetPeriodos := httplib.Get(beego.AppConfig.String("HistoricoRolesCrudService") +
-		"periodos-rol-usuarios?" + queryString + "&limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset)))
-	urlGetPeriodos.Header("Accept", "application/json")
+	urlGetPeriodos := beego.AppConfig.String("HistoricoRolesCrudService") +
+		"periodos-rol-usuarios?" + queryString + "&limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset))
 
-	err := urlGetPeriodos.ToJSON(&response)
+	_, err := request.GetWithContext(ctx, urlGetPeriodos, &response)
 	if err != nil {
 		log.Println("Error en la solicitud HTTP:", err)
 		return models.MetadataResponse{}, fmt.Errorf("error al obtener los periodos")

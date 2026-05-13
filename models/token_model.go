@@ -39,12 +39,16 @@ type EstudianteInfo struct {
 
 // AtributosToken structure
 type AtributosToken struct {
-	Usuario *struct {
-		Atributos []struct {
-			Atributo string `json:"atributo"`
-			Valor    string `json:"valor"`
-		} `json:"Atributos"`
-	} `json:"Usuario"`
+	Usuario *UsuarioData
+}
+
+type UsuarioData struct {
+	Atributos []Atributo
+}
+
+type Atributo struct {
+	Atributo string `json:"atributo"`
+	Valor    string `json:"valor"`
 }
 
 // UserInfo structure
