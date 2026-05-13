@@ -1,15 +1,16 @@
 package services
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/udistrital/autenticacion_mid/helpers"
 	"github.com/udistrital/autenticacion_mid/models"
 )
 
-func GetPeriodoInfo(documento string, query map[string]string, limit int64, offset int64) (map[string]any, error) {
+func GetPeriodoInfo(ctx context.Context, documento string, query map[string]string, limit int64, offset int64) (map[string]any, error) {
 
-	infoDocumento, err := helpers.GetInfoByDocumentoService(documento)
+	infoDocumento, err := helpers.GetInfoByDocumentoService(ctx, documento)
 	if err != nil {
 		return nil, fmt.Errorf("Error al obtener la información del documento: %v", err)
 	}
@@ -23,12 +24,12 @@ func GetPeriodoInfo(documento string, query map[string]string, limit int64, offs
 
 	}
 
-	periodoUsuario, err := helpers.GetPeriodoUsuario(documento, query, limit, offset)
+	periodoUsuario, err := helpers.GetPeriodoUsuario(ctx, documento, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("Error al obtener los periodos del usuario: %v", err)
 	}
 
-	terceroInfo, err := helpers.GetTerceroInfo(documento)
+	terceroInfo, err := helpers.GetTerceroInfo(ctx, documento)
 	if err != nil {
 		return nil, fmt.Errorf("Error al obtener la información del tercero: %v", err)
 	}
@@ -58,9 +59,9 @@ func GetPeriodoInfo(documento string, query map[string]string, limit int64, offs
 	return response, nil
 }
 
-func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) (map[string]any, error) {
+func GetAllPeriodosRoles(ctx context.Context, query map[string]string, limit int64, offset int64) (map[string]any, error) {
 	var response map[string]any
-	periodosResponse, err := helpers.GetAllPeriodos(query, limit, offset)
+	periodosResponse, err := helpers.GetAllPeriodos(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("Error al obtener todos los periodos: %v", err)
 	}
@@ -69,7 +70,7 @@ func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) (ma
 	var errores []string
 
 	for _, periodos := range periodosResponse.Data {
-		terceroInfo, err := helpers.GetTerceroInfo(periodos.Usuario.Documento)
+		terceroInfo, err := helpers.GetTerceroInfo(ctx, periodos.Usuario.Documento)
 		if err != nil {
 
 			periodoRolUsuario = append(periodoRolUsuario, models.PeriodoRolUsuario{
@@ -89,7 +90,7 @@ func GetAllPeriodosRoles(query map[string]string, limit int64, offset int64) (ma
 			continue
 		}
 
-		infoDocumento, err := helpers.GetInfoByDocumentoService(periodos.Usuario.Documento)
+		infoDocumento, err := helpers.GetInfoByDocumentoService(ctx, periodos.Usuario.Documento)
 		if err != nil {
 			errores = append(errores, fmt.Sprintf("Error al obtener la información del documento  %s ", periodos.Usuario.Documento))
 			continue

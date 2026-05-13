@@ -39,6 +39,7 @@ func (c *RolController) AddRol() {
 	var (
 		v models.UpdateRol
 	)
+	ctx := c.Ctx.Request.Context()
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err != nil {
 		beego.Error(err)
@@ -46,7 +47,7 @@ func (c *RolController) AddRol() {
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, nil, err.Error())
 	}
 
-	if response, err := services.AddRol(v); err != nil {
+	if response, err := services.AddRol(ctx, v); err != nil {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
@@ -76,6 +77,7 @@ func (c *RolController) RemoveRol() {
 	var (
 		v models.UpdateRol
 	)
+	ctx := c.Ctx.Request.Context()
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err != nil {
 		beego.Error(err)
@@ -83,7 +85,7 @@ func (c *RolController) RemoveRol() {
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, nil, err.Error())
 	}
 
-	if response, err := services.RemoveRol(v); err != nil {
+	if response, err := services.RemoveRol(ctx, v); err != nil {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, err.Error())
@@ -110,6 +112,7 @@ func (c *RolController) GetPeriodoInfo() {
 	var query = make(map[string]string)
 	var limit int64
 	var offset int64
+	ctx := c.Ctx.Request.Context()
 
 	documento := c.Ctx.Input.Param(":documento")
 
@@ -134,7 +137,7 @@ func (c *RolController) GetPeriodoInfo() {
 		offset = v
 	}
 
-	periodsData, err := services.GetPeriodoInfo(documento, query, limit, offset)
+	periodsData, err := services.GetPeriodoInfo(ctx, documento, query, limit, offset)
 	if err != nil {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(404)
@@ -165,6 +168,7 @@ func (c *RolController) GetAllPeriodos() {
 	var query = make(map[string]string)
 	var limit int64
 	var offset int64
+	ctx := c.Ctx.Request.Context()
 
 	if v := c.GetString("query"); v != "" {
 		for _, cond := range strings.Split(v, ",") {
@@ -189,7 +193,7 @@ func (c *RolController) GetAllPeriodos() {
 		offset = v
 	}
 
-	periodsData, err := services.GetAllPeriodosRoles(query, limit, offset)
+	periodsData, err := services.GetAllPeriodosRoles(ctx, query, limit, offset)
 	if err != nil {
 		beego.Error(err)
 		c.Ctx.Output.SetStatus(404)
