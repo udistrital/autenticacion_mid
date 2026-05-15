@@ -4,7 +4,6 @@ import (
 	_ "github.com/udistrital/autenticacion_mid/routers"
 
 	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/plugins/cors"
 	apistatus "github.com/udistrital/utils_oas/apiStatusLib"
 	auditoria "github.com/udistrital/utils_oas/auditoria"
@@ -34,13 +33,11 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	if err := xray.InitXRay(); err != nil {
-		logs.Error(err)
-	}
-
 	apistatus.Init()
 	auditoria.InitMiddleware()
-	beego.ErrorController(&customerror.CustomErrorController{})
 	security.SetSecurityHeaders()
+	xray.Init()
+
+	beego.ErrorController(&customerror.CustomErrorController{})
 	beego.Run()
 }
