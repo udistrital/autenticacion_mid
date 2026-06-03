@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"os"
@@ -10,9 +11,9 @@ import (
 )
 
 // GetInfoByEmail ...
-func GetInfoByEmail(m *models.Token) (u *models.UserInfo, err error) {
+func GetInfoByEmail(ctx context.Context, m *models.Token) (u *models.UserInfo, err error) {
 	userRoles := []string{}
-	EstudianteInfo, err := helpers.GetCodeByEmailStudentService(m.Email)
+	EstudianteInfo, err := helpers.GetCodeByEmailStudentService(ctx, m.Email)
 
 	if err != nil {
 		return nil, err
@@ -35,17 +36,17 @@ func GetInfoByEmail(m *models.Token) (u *models.UserInfo, err error) {
 }
 
 // GetRolesByUser
-func GetRolesByUser(user models.UserName) (*models.Payload, map[string]interface{}) {
+func GetRolesByUser(ctx context.Context, user models.UserName) (*models.Payload, map[string]interface{}) {
 	userRoles := []string{}
 
-	RolesUsuario, err := helpers.GetRolesUsuario(user.User)
+	RolesUsuario, err := helpers.GetRolesUsuario(ctx, user.User)
 	if err != nil {
 		outputError := map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": err}
 		return nil, outputError
 	}
 
 	if RolesUsuario.Usuario != nil && len(RolesUsuario.Usuario.Atributos) > 0 {
-		payload, err := helpers.GetPayload(userRoles, RolesUsuario)
+		payload, err := helpers.GetPayload(ctx, userRoles, RolesUsuario)
 		if err != nil {
 			outputError := map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": err}
 			return nil, outputError
@@ -58,17 +59,17 @@ func GetRolesByUser(user models.UserName) (*models.Payload, map[string]interface
 }
 
 // GetInfoDocumento
-func GetInfoDocumento(user models.Documento) (*models.Payload, map[string]interface{}) {
+func GetInfoDocumento(ctx context.Context, user models.Documento) (*models.Payload, map[string]interface{}) {
 	userRoles := []string{}
 
-	RolesUsuario, err := helpers.GetInfoByDocumentoService(user.Numero)
+	RolesUsuario, err := helpers.GetInfoByDocumentoService(ctx, user.Numero)
 	if err != nil {
 		outputError := map[string]interface{}{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": err}
 		return nil, outputError
 	}
 
 	if len(RolesUsuario.Usuario.Atributos) > 0 {
-		payload, err := helpers.GetPayload(userRoles, RolesUsuario)
+		payload, err := helpers.GetPayload(ctx, userRoles, RolesUsuario)
 		if err != nil {
 			outputError := map[string]interface{}{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": err}
 			return nil, outputError

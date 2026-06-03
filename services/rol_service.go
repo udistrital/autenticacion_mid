@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"strconv"
 	"strings"
@@ -10,13 +11,13 @@ import (
 )
 
 // AddRol ...
-func AddRol(user models.UpdateRol) (map[string]interface{}, error) {
+func AddRol(ctx context.Context, user models.UpdateRol) (map[string]interface{}, error) {
 	var userName models.UserName
 	var respuesta map[string]interface{}
 	var rolEncontrado = false
 	userName.User = user.User
 
-	RolesUsuario, err1 := GetRolesByUser(userName)
+	RolesUsuario, err1 := GetRolesByUser(ctx, userName)
 
 	if err1 != nil {
 		return nil, errors.New("Error al obtener los roles del usuario en rol_service.AddRol: " + err1["Error"].(string))
@@ -40,12 +41,12 @@ func AddRol(user models.UpdateRol) (map[string]interface{}, error) {
 	}
 
 	// Add role to user
-	User, err := helpers.GetUsuario(user.User)
+	User, err := helpers.GetUsuario(ctx, user.User)
 	if err != nil {
 		return nil, err
 	}
 
-	Rol, err := helpers.GetRol(user.Rol)
+	Rol, err := helpers.GetRol(ctx, user.Rol)
 	if err != nil {
 		return nil, err
 	}
@@ -60,12 +61,12 @@ func AddRol(user models.UpdateRol) (map[string]interface{}, error) {
 		return nil, errors.New("Error al convertir el Id del usuario a int")
 	}
 
-	_, err = helpers.PostUsuarioRol(idUsuario, idRol)
+	_, err = helpers.PostUsuarioRol(ctx, idUsuario, idRol)
 	if err != nil {
 		return nil, err
 	}
 
-	PerfilUsuario, err := helpers.GetPerfilUsuario(idUsuario)
+	PerfilUsuario, err := helpers.GetPerfilUsuario(ctx, idUsuario)
 
 	if err != nil {
 		return nil, err
@@ -75,7 +76,7 @@ func AddRol(user models.UpdateRol) (map[string]interface{}, error) {
 		// Post profile if not exist
 
 		valuePerfil := "Internal/everyone," + user.Rol
-		PostPerfil, err := helpers.PostPerfilUsuario(idUsuario, valuePerfil)
+		PostPerfil, err := helpers.PostPerfilUsuario(ctx, idUsuario, valuePerfil)
 		if PostPerfil != nil {
 			return nil, err
 		}
@@ -120,7 +121,7 @@ func AddRol(user models.UpdateRol) (map[string]interface{}, error) {
 			}
 
 			valuePerfil := user.Rol + "," + StringPerfil
-			UpdatePerfil, err := helpers.UpdatePerfilUsuario(UmIdProfile, valuePerfil)
+			UpdatePerfil, err := helpers.UpdatePerfilUsuario(ctx, UmIdProfile, valuePerfil)
 
 			if err != nil {
 				return nil, err
@@ -143,14 +144,14 @@ func AddRol(user models.UpdateRol) (map[string]interface{}, error) {
 	return respuesta, nil
 }
 
-func RemoveRol(user models.UpdateRol) (map[string]interface{}, error) {
+func RemoveRol(ctx context.Context, user models.UpdateRol) (map[string]interface{}, error) {
 	var userName models.UserName
 	var rolEncontrado = false
 	var rolEliminar string
 	userName.User = user.User
 
 	// Obtener Roles del Usuario
-	RolesUsuario, err1 := GetRolesByUser(userName)
+	RolesUsuario, err1 := GetRolesByUser(ctx, userName)
 	if err1 != nil {
 		return nil, errors.New("Error al obtener los roles del usuario en rol_service.RemoveRol: " + err1["Error"].(string))
 	}
@@ -162,7 +163,7 @@ func RemoveRol(user models.UpdateRol) (map[string]interface{}, error) {
 			rolEliminar = RolesUsuario.Role[i]
 
 			// Obtener Usuario por email
-			User, err := helpers.GetUsuario(user.User)
+			User, err := helpers.GetUsuario(ctx, user.User)
 			if err != nil {
 				return nil, err
 			}
@@ -173,13 +174,13 @@ func RemoveRol(user models.UpdateRol) (map[string]interface{}, error) {
 			}
 
 			// Obtener Rol por nombre
-			Rol, err := helpers.GetRol(user.Rol)
+			Rol, err := helpers.GetRol(ctx, user.Rol)
 			if err != nil {
 				return nil, err
 			}
 
 			// Obtener UsuarioRol (Tabla de Rompimiento)
-			UsuarioRol, err := helpers.GetUsuarioRol(User.Usuarios.Usuario[0].Id)
+			UsuarioRol, err := helpers.GetUsuarioRol(ctx, User.Usuarios.Usuario[0].Id)
 
 			if err != nil {
 				return nil, err
@@ -190,7 +191,7 @@ func RemoveRol(user models.UpdateRol) (map[string]interface{}, error) {
 					// Role found
 
 					// Eliminar UsuarioRol (Tabla de Rompimiento)
-					_, err := helpers.DeleteUsuarioRol(UsuarioRol.Usuario.Roles[i].UmId)
+					_, err := helpers.DeleteUsuarioRol(ctx, UsuarioRol.Usuario.Roles[i].UmId)
 
 					if err != nil {
 						return nil, err
@@ -199,7 +200,7 @@ func RemoveRol(user models.UpdateRol) (map[string]interface{}, error) {
 			}
 
 			// Obtener Perfil de Usuario por idUsuario
-			PerfilUsuario, err := helpers.GetPerfilUsuario(idUsuario)
+			PerfilUsuario, err := helpers.GetPerfilUsuario(ctx, idUsuario)
 			IdPerfil := PerfilUsuario.Perfiles.Perfil[0].UmId
 			UmIdProfile, err := strconv.Atoi(IdPerfil)
 
@@ -213,7 +214,7 @@ func RemoveRol(user models.UpdateRol) (map[string]interface{}, error) {
 				strPerfil := helpers.ObtenerStringPerfil(PerfilUsuario.Perfiles.Perfil[0].UmAttrValue, rolEliminar)
 
 				// Actualizar perfil
-				UpdatePerfil, err := helpers.UpdatePerfilUsuario(UmIdProfile, strPerfil)
+				UpdatePerfil, err := helpers.UpdatePerfilUsuario(ctx, UmIdProfile, strPerfil)
 				if err != nil {
 					return nil, err
 				}
