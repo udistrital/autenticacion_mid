@@ -13,7 +13,7 @@ type Documento struct {
 
 // UserName structure
 type UserName struct {
-	User string `json:"user"`
+	User string `json:"user" valid:"Required"`
 }
 
 // Payload structure
