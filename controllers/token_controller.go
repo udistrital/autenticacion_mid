@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/validation"
 	"github.com/udistrital/autenticacion_mid/models"
 	"github.com/udistrital/autenticacion_mid/services"
 )
@@ -59,21 +60,26 @@ func (c *TokenController) GetEmail() { // ? No se usa el APIResponseDTO debido a
 // @router /userRol [post]
 func (c *TokenController) GetRol() { // ? No se usa el APIResponseDTO debido a que este endpoint se utiliza por muchos servicios en producción con el formato de respuesta antiguo
 
-	var (
-		v models.UserName
-	)
+	var v models.UserName
+
 	ctx := c.Ctx.Request.Context()
 
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-		if response, err := services.GetRolesByUser(ctx, v); err == nil {
-			c.Data["json"] = response
-		} else {
-			c.Data["system"] = err
-			c.Abort("400")
-		}
-	} else {
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err != nil {
 		c.Data["system"] = err
 		c.Abort("400")
+	}
+
+	valid := validation.Validation{}
+	if ok, _ := valid.Valid(&v); !ok {
+		c.Data["system"] = valid.Errors
+		c.Abort("400")
+	}
+
+	if response, err := services.GetRolesByUser(ctx, v); err == nil {
+		c.Data["json"] = response
+	} else {
+		c.Data["system"] = err
+		c.Abort("500")
 	}
 
 	c.ServeJSON()
