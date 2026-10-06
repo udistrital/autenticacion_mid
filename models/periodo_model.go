@@ -66,3 +66,11 @@ type PeriodoRolUsuario struct {
 	IdPeriodo    int    `json:"id_periodo"`
 	IdTercero    int    `json:"id_tercero"`
 }
+
+// InfoPersona agrupa lo consultado en Terceros y WSO2 para un documento
+type InfoPersona struct {
+	Tercero    TerceroInfo
+	ErrTercero error
+	Correo     string
+	ErrWso2    error
+}

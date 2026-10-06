@@ -33,7 +33,7 @@ func GetPeriodoUsuario(ctx context.Context, documento string, query map[string]s
 
 func GetTerceroInfo(ctx context.Context, documento string) (models.TerceroInfo, error) {
 	var TerceroInfo []models.TerceroInfo
-	urlGetTerceroInfo := beego.AppConfig.String("TercerosService") + "tercero/identificacion?query=" + documento
+	urlGetTerceroInfo := beego.AppConfig.String("TercerosService") + "tercero/identificacion?documento=" + documento
 
 	_, err := request.GetWithContext(ctx, urlGetTerceroInfo, &TerceroInfo)
 	if err != nil {
