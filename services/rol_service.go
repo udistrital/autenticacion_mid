@@ -17,7 +17,7 @@ func AddRol(ctx context.Context, user models.UpdateRol) (map[string]interface{},
 	var rolEncontrado = false
 	userName.User = user.User
 
-	RolesUsuario, err1 := GetRolesByUser(ctx, userName)
+	RolesUsuario, err1 := GetRolesByUserCrud(ctx, userName)
 
 	if err1 != nil {
 		return nil, errors.New("Error al obtener los roles del usuario en rol_service.AddRol: " + err1["Error"].(string))
@@ -151,7 +151,7 @@ func RemoveRol(ctx context.Context, user models.UpdateRol) (map[string]interface
 	userName.User = user.User
 
 	// Obtener Roles del Usuario
-	RolesUsuario, err1 := GetRolesByUser(ctx, userName)
+	RolesUsuario, err1 := GetRolesByUserCrud(ctx, userName)
 	if err1 != nil {
 		return nil, errors.New("Error al obtener los roles del usuario en rol_service.RemoveRol: " + err1["Error"].(string))
 	}
