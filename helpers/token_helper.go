@@ -14,7 +14,8 @@ import (
 
 // Get_Methods
 
-func GetRolesUsuario(ctx context.Context, email string) (models.AtributosToken, error) {
+// GetRolesUsuarioCrud reads the user from autenticacion_crud (rol/add, rol/remove).
+func GetRolesUsuarioCrud(ctx context.Context, email string) (models.AtributosToken, error) {
 	var RolesUsuario models.AtributosToken
 	urlGetRolesUsuario := beego.AppConfig.String("AutenticacionCrudService") + "roles?usuario=" + email
 
@@ -40,6 +41,7 @@ func GetCodeByEmailStudentService(ctx context.Context, email string) (models.Est
 	return EstudianteInfo, nil
 }
 
+// GetInfoByDocumentoService reads the user from EI (documentoToken, periods).
 func GetInfoByDocumentoService(ctx context.Context, documento string) (models.AtributosToken, error) {
 	var RolesUsuario models.AtributosToken
 	urlGetInfoByDocumentoService := beego.AppConfig.String("Wso2Service") + "usuario_documento?documento=" + documento
