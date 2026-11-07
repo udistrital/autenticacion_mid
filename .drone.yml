@@ -60,7 +60,6 @@ steps:
   when:
     branch:
       - release/*
-      - feature/autenticacion-nuevo
     event:
       - push
 
@@ -111,7 +110,6 @@ steps:
     --query "service.deployments[0].id"
   when:
     branch:
-      - feature/autenticacion-nuevo
       - release/*
       - master
     event:

@@ -38,6 +38,10 @@ type scimUser struct {
 	Groups []struct {
 		Display string `json:"display"`
 	} `json:"groups"`
+	Roles []struct {
+		Display      string `json:"display"`
+		AudienceType string `json:"audienceType"`
+	} `json:"roles"`
 	Custom struct {
 		Documento          string `json:"documento"`
 		DocumentoCompuesto string `json:"documento_compuesto"`
@@ -71,6 +75,7 @@ func GetRolesUsuarioIS(ctx context.Context, usuario string) (models.AtributosTok
 	}
 	atributos, err := buscarUsuario(ctx, atributo, usuario)
 	if err != nil {
+		logs.Error("Error al obtener los roles del usuario %s: %w", usuario, err)
 		return models.AtributosToken{}, fmt.Errorf("Error al obtener los roles del usuario %s: %w", usuario, err)
 	}
 	return atributos, nil
@@ -97,7 +102,7 @@ func buscarUsuario(ctx context.Context, atributo, valor string) (models.Atributo
 
 	query := url.Values{}
 	query.Set("filter", fmt.Sprintf("%s eq %s", atributo, scimString(valor)))
-	query.Set("attributes", "userName,name.familyName,emails,groups,"+customSchema)
+	query.Set("attributes", "userName,name.familyName,emails,groups,roles,"+customSchema)
 	endpoint := beego.AppConfig.String("Wso2IsService") + "/scim2/Users?" + query.Encode()
 
 	var list scimList
@@ -114,10 +119,17 @@ func buscarUsuario(ctx context.Context, atributo, valor string) (models.Atributo
 	return toAtributos(list.Resources[0]), nil
 }
 
-// toAtributos returns the rows vista_usuarios_atributos returned; role is the
-// user's groups.
+// toAtributos returns the rows vista_usuarios_atributos returned; role is
+// Internal/everyone (implicit in IS 5.3), Internal/selfsignup if the user has
+// IS's selfsignup role, then the user's groups.
 func toAtributos(u scimUser) models.AtributosToken {
-	var roles []string
+	roles := []string{"Internal/everyone"}
+	for _, r := range u.Roles {
+		if r.AudienceType == "organization" && r.Display == "selfsignup" {
+			roles = append(roles, "Internal/selfsignup")
+			break
+		}
+	}
 	for _, g := range u.Groups {
 		roles = append(roles, g.Display)
 	}
