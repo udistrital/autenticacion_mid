@@ -35,11 +35,21 @@ func GetInfoByEmail(ctx context.Context, m *models.Token) (u *models.UserInfo, e
 	return u, nil
 }
 
-// GetRolesByUser
+// GetRolesByUserCrud reads the user from autenticacion_crud (rol/add, rol/remove).
+func GetRolesByUserCrud(ctx context.Context, user models.UserName) (*models.Payload, map[string]interface{}) {
+	return rolesByUser(ctx, user, helpers.GetRolesUsuarioCrud)
+}
+
+// GetRolesByUser reads the user from WSO2 IS 7.3 (token/userRol).
 func GetRolesByUser(ctx context.Context, user models.UserName) (*models.Payload, map[string]interface{}) {
+	return rolesByUser(ctx, user, helpers.GetRolesUsuarioIS)
+}
+
+func rolesByUser(ctx context.Context, user models.UserName,
+	lookup func(context.Context, string) (models.AtributosToken, error)) (*models.Payload, map[string]interface{}) {
 	userRoles := []string{}
 
-	RolesUsuario, err := helpers.GetRolesUsuario(ctx, user.User)
+	RolesUsuario, err := lookup(ctx, user.User)
 	if err != nil {
 		outputError := map[string]interface{}{"Function": "FuncionalidadMidController:userRol", "Error": err}
 		return nil, outputError
