@@ -7,7 +7,7 @@ import (
 	"github.com/astaxie/beego/plugins/cors"
 	apistatus "github.com/udistrital/utils_oas/apiStatusLib"
 	auditoria "github.com/udistrital/utils_oas/auditoria"
-	"github.com/udistrital/utils_oas/customerror"
+	"github.com/udistrital/utils_oas/customerrorv2"
 	"github.com/udistrital/utils_oas/security"
 	"github.com/udistrital/utils_oas/xray"
 )
@@ -38,6 +38,6 @@ func main() {
 	security.SetSecurityHeaders()
 	xray.Init()
 
-	beego.ErrorController(&customerror.CustomErrorController{})
+	beego.ErrorController(&customerrorv2.CustomErrorController{})
 	beego.Run()
 }
