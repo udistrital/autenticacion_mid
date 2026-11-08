@@ -21,7 +21,9 @@ import (
 
 const (
 	customSchema = "urn:scim:schemas:extension:custom:User"
-	scimScopes   = "internal_user_mgt_list internal_user_mgt_view"
+	// Institutional emails are <username>@dominioInstitucional.
+	dominioInstitucional = "udistrital.edu.co"
+	scimScopes           = "internal_user_mgt_list internal_user_mgt_view"
 	// request.GetWithContext sends this context value as the Authorization header.
 	authorizationKey = "Authorization"
 )
@@ -67,13 +69,17 @@ var (
 )
 
 // GetRolesUsuarioIS looks the user up by email when usuario has an @, else by
-// username.
+// username; an institutional email no account has, by its username
+// (usuarioInstitucional).
 func GetRolesUsuarioIS(ctx context.Context, usuario string) (models.AtributosToken, error) {
 	atributo := "userName"
 	if strings.Contains(usuario, "@") {
 		atributo = "emails"
 	}
-	atributos, err := buscarUsuario(ctx, atributo, usuario)
+	atributos, encontrados, err := buscarUsuario(ctx, atributo, usuario)
+	if nombre, ok := usuarioInstitucional(usuario); err == nil && encontrados == 0 && ok {
+		atributos, _, err = buscarUsuario(ctx, "userName", nombre)
+	}
 	if err != nil {
 		logs.Error("Error al obtener los roles del usuario %s: %w", usuario, err)
 		return models.AtributosToken{}, fmt.Errorf("Error al obtener los roles del usuario %s: %w", usuario, err)
@@ -83,21 +89,34 @@ func GetRolesUsuarioIS(ctx context.Context, usuario string) (models.AtributosTok
 
 // GetInfoByDocumentoIS is not wired yet: documentoToken and periods use GetInfoByDocumentoService.
 func GetInfoByDocumentoIS(ctx context.Context, documento string) (models.AtributosToken, error) {
-	atributos, err := buscarUsuario(ctx, customSchema+":documento", documento)
+	atributos, _, err := buscarUsuario(ctx, customSchema+":documento", documento)
 	if err != nil {
 		return models.AtributosToken{}, fmt.Errorf("Error al obtener la información del documento %s: %w", documento, err)
 	}
 	return atributos, nil
 }
 
+// usuarioInstitucional returns the username of an institutional email: its
+// part before the @ (dsparedest@udistrital.edu.co is dsparedest). Used only
+// when no account has the email, for accounts whose email attribute is empty or
+// another one (Outlook logins send the institutional email). Other domains are
+// never mapped: their part before the @ may be someone else's username.
+func usuarioInstitucional(email string) (string, bool) {
+	i := strings.LastIndex(email, "@")
+	if i <= 0 || !strings.EqualFold(email[i+1:], dominioInstitucional) {
+		return "", false
+	}
+	return email[:i], true
+}
+
 // buscarUsuario returns no attributes ("Usuario no registrado") unless exactly
-// one user matches.
-func buscarUsuario(ctx context.Context, atributo, valor string) (models.AtributosToken, error) {
+// one user matches, and how many matched.
+func buscarUsuario(ctx context.Context, atributo, valor string) (models.AtributosToken, int, error) {
 	vacio := models.AtributosToken{Usuario: &models.UsuarioData{}}
 
 	bearer, err := getToken(ctx)
 	if err != nil {
-		return vacio, err
+		return vacio, 0, err
 	}
 
 	query := url.Values{}
@@ -111,12 +130,12 @@ func buscarUsuario(ctx context.Context, atributo, valor string) (models.Atributo
 		resetToken()
 	}
 	if err != nil {
-		return vacio, err
+		return vacio, 0, err
 	}
 	if len(list.Resources) != 1 {
-		return vacio, nil
+		return vacio, len(list.Resources), nil
 	}
-	return toAtributos(list.Resources[0]), nil
+	return toAtributos(list.Resources[0]), 1, nil
 }
 
 // toAtributos returns the rows vista_usuarios_atributos returned; role is
