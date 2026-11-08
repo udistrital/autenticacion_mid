@@ -2,17 +2,20 @@ package helpers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/httplib"
 	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/autenticacion_mid/models"
 	"github.com/udistrital/utils_oas/request"
 )
 
-// Get_Methods
+var clientCredentialsClient = &http.Client{Timeout: 30 * time.Second}
 
 // GetRolesUsuarioCrud reads the user from autenticacion_crud (rol/add, rol/remove).
 func GetRolesUsuarioCrud(ctx context.Context, email string) (models.AtributosToken, error) {
@@ -104,12 +107,30 @@ func MapAtributos(RolesUsuario models.AtributosToken) (string, string, string, s
 	return familyName, documento, mail, documentoCompuesto, roles
 }
 
-func ClientCredentialsRequest(payload string) (response models.ClientCredentialsResponse, err error) {
-	request := httplib.Post(beego.AppConfig.String("Wso2AuthService") + "apioas/token")
-	request.Header("Content-Type", "application/x-www-form-urlencoded")
-	request.Header("Authorization", "Basic "+payload)
-	request.Body("grant_type=client_credentials")
-	err = request.ToJSON(&response)
+func ClientCredentialsRequest(payload string) (models.ClientCredentialsResponse, error) {
+	form := url.Values{"grant_type": {"client_credentials"}}
+	req, err := http.NewRequest(http.MethodPost, beego.AppConfig.String("Wso2IsService")+"/oauth2/token",
+		strings.NewReader(form.Encode()))
+	if err != nil {
+		return models.ClientCredentialsResponse{}, err
+	}
 
-	return
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Basic "+payload)
+
+	resp, err := clientCredentialsClient.Do(req)
+	if err != nil {
+		return models.ClientCredentialsResponse{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return models.ClientCredentialsResponse{}, fmt.Errorf("IS respondió HTTP %d al pedir el token", resp.StatusCode)
+	}
+
+	var response models.ClientCredentialsResponse
+	err = json.NewDecoder(resp.Body).Decode(&response)
+
+	return response, err
 }
