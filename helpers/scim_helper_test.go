@@ -34,7 +34,8 @@ func fakeUsuariosIS(t *testing.T, usuarios map[string]string, correos map[string
 		}
 		var res []map[string]any
 		for _, id := range ids {
-			res = append(res, map[string]any{"id": id, "userName": usuarios[id]})
+			// familyName is the username, so a test can tell which account came back.
+			res = append(res, map[string]any{"id": id, "userName": usuarios[id], "name": map[string]string{"familyName": usuarios[id]}})
 		}
 		json.NewEncoder(w).Encode(map[string]any{"totalResults": len(res), "Resources": res})
 	}))
@@ -83,6 +84,45 @@ func TestUsuarioInstitucionalNombre(t *testing.T) {
 	} {
 		if got, ok := usuarioInstitucional(in); got != want || ok != (want != "") {
 			t.Errorf("usuarioInstitucional(%q) = %q, %v; want %q", in, got, ok, want)
+		}
+	}
+}
+
+// When several accounts share the email, the one the caller's token belongs to
+// wins; with no such token nothing changes.
+func TestGetRolesUsuarioISDesempateToken(t *testing.T) {
+	fakeUsuariosIS(t,
+		map[string]string{"9ef63ad4-0000-4000-8000-000000000001": "ana", "9ef63ad4-0000-4000-8000-000000000002": "ana.old", "u3": "otro"},
+		map[string][]string{"ana@gmail.com": {"9ef63ad4-0000-4000-8000-000000000001", "9ef63ad4-0000-4000-8000-000000000002"}})
+
+	elegido := func(sub string) string {
+		ctx := context.Background()
+		if sub != "" {
+			ctx = context.WithValue(ctx, auditoriaUserKey, sub)
+		}
+		at, err := GetRolesUsuarioIS(ctx, "ana@gmail.com")
+		if err != nil {
+			t.Fatalf("sub %q: %v", sub, err)
+		}
+		for _, a := range at.Usuario.Atributos {
+			if a.Atributo == "sn" {
+				return a.Valor
+			}
+		}
+		return ""
+	}
+
+	for sub, want := range map[string]string{
+		"9ef63ad4-0000-4000-8000-000000000002": "ana.old", // sub is the user ID
+		"ANA":                                  "ana",     // the username, any case
+		"ana@carbon.super":                     "ana",     // with the tenant
+		"PRIMARY/ana.old@carbon.super":         "ana.old", // with the user store too
+		"otro":                                 "",        // a token of someone who is not one of them
+		"f0f0f0f0-federated-login":             "",        // a federated login's own ID
+		"":                                     "",        // no token user (e.g. client_credentials)
+	} {
+		if got := elegido(sub); got != want {
+			t.Errorf("sub %q: got %q, want %q", sub, got, want)
 		}
 	}
 }

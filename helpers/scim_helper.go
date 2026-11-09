@@ -26,9 +26,12 @@ const (
 	scimScopes           = "internal_user_mgt_list internal_user_mgt_view"
 	// request.GetWithContext sends this context value as the Authorization header.
 	authorizationKey = "Authorization"
+	// utils_oas/auditoria stores the caller's token sub (from userinfo) here.
+	auditoriaUserKey = "user"
 )
 
 type scimUser struct {
+	ID       string `json:"id"`
 	UserName string `json:"userName"`
 	Name     struct {
 		FamilyName string `json:"familyName"`
@@ -70,26 +73,75 @@ var (
 
 // GetRolesUsuarioIS looks the user up by email when usuario has an @, else by
 // username; an institutional email no account has, by its username
-// (usuarioInstitucional).
+// (usuarioInstitucional). When several accounts share the email, the one the
+// caller's token belongs to wins (cuentaDelToken).
 func GetRolesUsuarioIS(ctx context.Context, usuario string) (models.AtributosToken, error) {
 	atributo := "userName"
 	if strings.Contains(usuario, "@") {
 		atributo = "emails"
 	}
-	atributos, encontrados, err := buscarUsuario(ctx, atributo, usuario)
-	if nombre, ok := usuarioInstitucional(usuario); err == nil && encontrados == 0 && ok {
-		atributos, _, err = buscarUsuario(ctx, "userName", nombre)
+	usuarios, err := buscarUsuarios(ctx, atributo, usuario)
+	if nombre, ok := usuarioInstitucional(usuario); err == nil && len(usuarios) == 0 && ok {
+		usuarios, err = buscarUsuarios(ctx, "userName", nombre)
+		if err == nil && len(usuarios) == 1 {
+			logs.Info("Ninguna cuenta tiene el email %s: se usa la cuenta %s (%s) por su nombre de usuario",
+				usuario, usuarios[0].UserName, usuarios[0].ID)
+		}
 	}
 	if err != nil {
 		logs.Error("Error al obtener los roles del usuario %s: %w", usuario, err)
 		return models.AtributosToken{}, fmt.Errorf("Error al obtener los roles del usuario %s: %w", usuario, err)
 	}
-	return atributos, nil
+	if len(usuarios) > 1 {
+		if u := cuentaDelToken(ctx, usuarios); u != nil {
+			logs.Info("%d cuentas tienen el email %s: se usa %s (%s), la del token",
+				len(usuarios), usuario, u.UserName, u.ID)
+			usuarios = []scimUser{*u}
+		} else {
+			sub, _ := ctx.Value(auditoriaUserKey).(string)
+			if sub == "" {
+				sub = "sin usuario"
+			}
+			logs.Warning("%d cuentas tienen el email %s y ninguna es la del token (%s): usuario no registrado",
+				len(usuarios), usuario, sub)
+		}
+	}
+	if len(usuarios) != 1 {
+		return models.AtributosToken{Usuario: &models.UsuarioData{}}, nil
+	}
+	return toAtributos(usuarios[0]), nil
+}
+
+// cuentaDelToken returns the account among usuarios that the caller's token
+// belongs to, if any: its sub is the account's ID, or its username, possibly
+// with the user store (PRIMARY/) and tenant (@carbon.super) IS adds per
+// application. Federated logins (e.g. Outlook) have a sub of their own that is
+// no account's, and client_credentials tokens have no user, so neither picks
+// one.
+func cuentaDelToken(ctx context.Context, usuarios []scimUser) *scimUser {
+	sub, _ := ctx.Value(auditoriaUserKey).(string)
+	if sub == "" {
+		return nil
+	}
+	nombre := sub
+	if i := strings.Index(nombre, "/"); i >= 0 && strings.EqualFold(nombre[:i], "PRIMARY") {
+		nombre = nombre[i+1:]
+	}
+	if strings.HasSuffix(strings.ToLower(nombre), "@carbon.super") {
+		nombre = nombre[:len(nombre)-len("@carbon.super")]
+	}
+	for i := range usuarios {
+		u := &usuarios[i]
+		if (u.ID != "" && strings.EqualFold(sub, u.ID)) || strings.EqualFold(nombre, u.UserName) {
+			return u
+		}
+	}
+	return nil
 }
 
 // GetInfoByDocumentoIS is not wired yet: documentoToken and periods use GetInfoByDocumentoService.
 func GetInfoByDocumentoIS(ctx context.Context, documento string) (models.AtributosToken, error) {
-	atributos, _, err := buscarUsuario(ctx, customSchema+":documento", documento)
+	atributos, err := buscarUsuario(ctx, customSchema+":documento", documento)
 	if err != nil {
 		return models.AtributosToken{}, fmt.Errorf("Error al obtener la información del documento %s: %w", documento, err)
 	}
@@ -110,18 +162,25 @@ func usuarioInstitucional(email string) (string, bool) {
 }
 
 // buscarUsuario returns no attributes ("Usuario no registrado") unless exactly
-// one user matches, and how many matched.
-func buscarUsuario(ctx context.Context, atributo, valor string) (models.AtributosToken, int, error) {
-	vacio := models.AtributosToken{Usuario: &models.UsuarioData{}}
+// one user matches.
+func buscarUsuario(ctx context.Context, atributo, valor string) (models.AtributosToken, error) {
+	usuarios, err := buscarUsuarios(ctx, atributo, valor)
+	if err != nil || len(usuarios) != 1 {
+		return models.AtributosToken{Usuario: &models.UsuarioData{}}, err
+	}
+	return toAtributos(usuarios[0]), nil
+}
 
+// buscarUsuarios returns the users whose atributo equals valor.
+func buscarUsuarios(ctx context.Context, atributo, valor string) ([]scimUser, error) {
 	bearer, err := getToken(ctx)
 	if err != nil {
-		return vacio, 0, err
+		return nil, err
 	}
 
 	query := url.Values{}
 	query.Set("filter", fmt.Sprintf("%s eq %s", atributo, scimString(valor)))
-	query.Set("attributes", "userName,name.familyName,emails,groups,roles,"+customSchema)
+	query.Set("attributes", "id,userName,name.familyName,emails,groups,roles,"+customSchema)
 	endpoint := beego.AppConfig.String("Wso2IsService") + "/scim2/Users?" + query.Encode()
 
 	var list scimList
@@ -130,12 +189,9 @@ func buscarUsuario(ctx context.Context, atributo, valor string) (models.Atributo
 		resetToken()
 	}
 	if err != nil {
-		return vacio, 0, err
+		return nil, err
 	}
-	if len(list.Resources) != 1 {
-		return vacio, len(list.Resources), nil
-	}
-	return toAtributos(list.Resources[0]), 1, nil
+	return list.Resources, nil
 }
 
 // toAtributos returns the rows vista_usuarios_atributos returned; role is
