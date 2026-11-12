@@ -94,7 +94,7 @@ func TestDocumentoToken(t *testing.T) {
 	// Verificar el código de estado de la respuesta
 	a.Equal(http.StatusOK, response.StatusCode, "Error en DocumentoToken, se esperaba 200 y se obtuvo %v", response.StatusCode)
 
-	var responseBody map[string]interface{}
+	var responseBody map[string]any
 	err = json.NewDecoder(response.Body).Decode(&responseBody)
 	a.NoError(err, "Error al decodificar el cuerpo de la respuesta")
 }

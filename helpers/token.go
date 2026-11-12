@@ -17,20 +17,6 @@ import (
 
 var clientCredentialsClient = &http.Client{Timeout: 30 * time.Second}
 
-// GetRolesUsuarioCrud reads the user from autenticacion_crud (rol/add, rol/remove).
-func GetRolesUsuarioCrud(ctx context.Context, email string) (models.AtributosToken, error) {
-	var RolesUsuario models.AtributosToken
-	urlGetRolesUsuario := beego.AppConfig.String("AutenticacionCrudService") + "roles?usuario=" + email
-
-	_, err := request.GetWithContext(ctx, urlGetRolesUsuario, &RolesUsuario)
-	if err != nil {
-		logs.Info("Error", err)
-		return models.AtributosToken{}, fmt.Errorf("Error al obtener los roles del usuario %s", email)
-	}
-
-	return RolesUsuario, nil
-}
-
 func GetCodeByEmailStudentService(ctx context.Context, email string) (models.EstudianteInfo, error) {
 	var EstudianteInfo models.EstudianteInfo
 	urlGetCodeByEmailStudentService := beego.AppConfig.String("GetCodeByEmailStudentService") + email
@@ -58,31 +44,18 @@ func GetInfoByDocumentoService(ctx context.Context, documento string) (models.At
 
 }
 
-func GetPayload(ctx context.Context, userRoles []string, RolesUsuario models.AtributosToken) (*models.Payload, error) {
-	familyName, documento, mail, documentoCompuesto, roles := MapAtributos(RolesUsuario)
-
-	userRoles = append(userRoles, roles...)
-	payload := &models.Payload{
-		Role:               userRoles,
-		DocumentoCompuesto: documentoCompuesto,
-		Documento:          documento,
-		Email:              mail,
-		FamilyName:         familyName,
-	}
-
-	EstudianteInfo, err := GetCodeByEmailStudentService(ctx, mail)
+// GetEstudiante returns the student with the email, or nil if there is none.
+func GetEstudiante(ctx context.Context, email string) (*models.Estudiante, error) {
+	EstudianteInfo, err := GetCodeByEmailStudentService(ctx, email)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(EstudianteInfo.EstudianteCollection.Estudiante) > 0 {
-		userRoles = append(userRoles, "ESTUDIANTE")
-		payload.Codigo = EstudianteInfo.EstudianteCollection.Estudiante[0].Codigo
-		payload.Estado = EstudianteInfo.EstudianteCollection.Estudiante[0].Estado
-		payload.Role = userRoles
+	if len(EstudianteInfo.EstudianteCollection.Estudiante) == 0 {
+		return nil, nil
 	}
 
-	return payload, nil
+	return &EstudianteInfo.EstudianteCollection.Estudiante[0], nil
 }
 
 func MapAtributos(RolesUsuario models.AtributosToken) (string, string, string, string, []string) {

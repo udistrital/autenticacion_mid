@@ -31,9 +31,8 @@ func (c *TokenController) URLMapping() {
 // @router /emailToken [post]
 func (c *TokenController) GetEmail() { // ? No se usa el APIResponseDTO debido a que este endpoint se utiliza por muchos servicios en producción con el formato de respuesta antiguo
 
-	var (
-		v models.Token
-	)
+	var v models.Token
+
 	ctx := c.Ctx.Request.Context()
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
@@ -55,7 +54,7 @@ func (c *TokenController) GetEmail() { // ? No se usa el APIResponseDTO debido a
 // @Title GetRol
 // @Description Recibe el usuario y devuelve información detallada del usuario
 // @Param	body	body 	models.UserName  	true		"Usuario registrado en wso2"
-// @Success 200 {object} models.Payload
+// @Success 200 {object} models.InfoUsuario
 // @Failure 404 not found resource
 // @router /userRol [post]
 func (c *TokenController) GetRol() { // ? No se usa el APIResponseDTO debido a que este endpoint se utiliza por muchos servicios en producción con el formato de respuesta antiguo
@@ -89,14 +88,13 @@ func (c *TokenController) GetRol() { // ? No se usa el APIResponseDTO debido a q
 // @Title GetDocumento
 // @Description Recibe el documento y devuelve información detallada del usuario
 // @Param	body	body 	models.Documento  	true		"Documento del usuario"
-// @Success 200 {object} models.Payload
+// @Success 200 {object} models.InfoUsuario
 // @Failure 404 not found resource
 // @router /documentoToken [post]
 func (c *TokenController) GetDocumento() {
 
-	var (
-		v models.Documento
-	)
+	var v models.Documento
+
 	ctx := c.Ctx.Request.Context()
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {

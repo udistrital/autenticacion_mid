@@ -22,8 +22,6 @@ Actualmente la API valida:
 ```
   AUTENTICACION_MID_HTTP_PORT: [Puerto de ejecución API]
   CODE_BY_EMAIL_STUDENT_URL: [Servicio WSO2 de consulta de estudiantes]
-  WSO2_AUTH_SERVICE: [Servicio WSO2 de Autenticación]
-  WSO2_USER_SERVICE: [Servicio WSO2 de Usuarios]
   HISTORICO_ROLES_SERVICE: [Servicio para gestión del histórico de roles de los usuarios]
   TERCEROS_SERVICE: [Servicio de terceros]
 ```

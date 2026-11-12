@@ -2,7 +2,7 @@
     "swagger": "2.0",
     "info": {
         "title": "beego Test API",
-        "description": "beego has a very cool tools to autogenerate documents for your API",
+        "description": "beego has a very cool tools to autogenerate documents for your API\n",
         "version": "1.0.0",
         "termsOfService": "http://beego.me/",
         "contact": {
@@ -20,7 +20,7 @@
                 "tags": [
                     "rol"
                 ],
-                "description": "Recibe el usuario y el rol",
+                "description": "Recibe el usuario y el rol\n\u003cbr\u003e",
                 "operationId": "RolController.AddRol",
                 "parameters": [
                     {
@@ -54,7 +54,7 @@
                 "tags": [
                     "rol"
                 ],
-                "description": "Obtiene los periodos de todos los usuarios",
+                "description": "Obtiene los periodos de todos los usuarios\n\u003cbr\u003e",
                 "operationId": "RolController.GetAllPeriodos",
                 "parameters": [
                     {
@@ -103,7 +103,7 @@
                 "tags": [
                     "rol"
                 ],
-                "description": "Recibe el usuario y el rol",
+                "description": "Recibe el usuario y el rol\n\u003cbr\u003e",
                 "operationId": "RolController.RemoveRol",
                 "parameters": [
                     {
@@ -134,7 +134,7 @@
                 "tags": [
                     "rol"
                 ],
-                "description": "Obtiene los periodos de roles de un usuario por su documento",
+                "description": "Obtiene los periodos de roles de un usuario por su documento\n\u003cbr\u003e",
                 "operationId": "RolController.GetPeriodoInfo",
                 "parameters": [
                     {
@@ -184,7 +184,7 @@
                 "tags": [
                     "token"
                 ],
-                "description": "Recibe el id del cliente y el número de documento del usuario que solicita el token",
+                "description": "Recibe el id del cliente y el número de documento del usuario que solicita el token\n\u003cbr\u003e",
                 "operationId": "TokenController.ClientAuth",
                 "parameters": [
                     {
@@ -215,7 +215,7 @@
                 "tags": [
                     "token"
                 ],
-                "description": "Recibe el documento y devuelve información detallada del usuario",
+                "description": "Recibe el documento y devuelve información detallada del usuario\n\u003cbr\u003e",
                 "operationId": "TokenController.GetDocumento",
                 "parameters": [
                     {
@@ -232,7 +232,7 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/models.Payload"
+                            "$ref": "#/definitions/models.InfoUsuario"
                         }
                     },
                     "404": {
@@ -246,7 +246,7 @@
                 "tags": [
                     "token"
                 ],
-                "description": "Recibe el correo electrónico del usuario desde la autenticación",
+                "description": "Recibe el correo electrónico del usuario desde la autenticación\n\u003cbr\u003e",
                 "operationId": "TokenController.GetEmail",
                 "parameters": [
                     {
@@ -277,7 +277,7 @@
                 "tags": [
                     "token"
                 ],
-                "description": "Recibe el usuario y devuelve información detallada del usuario",
+                "description": "Recibe el usuario y devuelve información detallada del usuario\n\u003cbr\u003e",
                 "operationId": "TokenController.GetRol",
                 "parameters": [
                     {
@@ -294,7 +294,7 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/models.Payload"
+                            "$ref": "#/definitions/models.InfoUsuario"
                         }
                     },
                     "404": {
@@ -305,15 +305,15 @@
         }
     },
     "definitions": {
-        "2315.0x14000307320.false": {
+        "2496.0x50b3582889f0.false": {
             "title": "false",
             "type": "object"
         },
-        "377.0x14000306e70.false": {
+        "377.0x50b358281d40.false": {
             "title": "false",
             "type": "object"
         },
-        "645.0x14000306ea0.false": {
+        "645.0x50b358281ec0.false": {
             "title": "false",
             "type": "object"
         },
@@ -338,33 +338,8 @@
                 }
             }
         },
-        "models.MetadataResponse": {
-            "title": "MetadataResponse",
-            "type": "object",
-            "properties": {
-                "Data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Periodo"
-                    }
-                },
-                "Message": {
-                    "type": "string"
-                },
-                "Metadata": {
-                    "$ref": "#/definitions/models.any"
-                },
-                "Status": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Success": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "models.Payload": {
-            "title": "Payload",
+        "models.InfoUsuario": {
+            "title": "InfoUsuario",
             "type": "object",
             "properties": {
                 "Codigo": {
@@ -390,6 +365,31 @@
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "models.MetadataResponse": {
+            "title": "MetadataResponse",
+            "type": "object",
+            "properties": {
+                "Data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Periodo"
+                    }
+                },
+                "Message": {
+                    "type": "string"
+                },
+                "Metadata": {
+                    "$ref": "#/definitions/models.any"
+                },
+                "Status": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -420,10 +420,10 @@
                     "format": "int64"
                 },
                 "RolId": {
-                    "$ref": "#/definitions/645.0x14000306ea0.false"
+                    "$ref": "#/definitions/645.0x50b358281ec0.false"
                 },
                 "UsuarioId": {
-                    "$ref": "#/definitions/377.0x14000306e70.false"
+                    "$ref": "#/definitions/377.0x50b358281d40.false"
                 }
             }
         },
@@ -432,7 +432,7 @@
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/2315.0x14000307320.false"
+                    "$ref": "#/definitions/2496.0x50b3582889f0.false"
                 },
                 "message": {
                     "type": "string"

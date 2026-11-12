@@ -22,10 +22,6 @@ func GetPeriodoInfo(ctx context.Context, documento string, query map[string]stri
 	var correo string
 	if infoDocumento.Usuario != nil {
 		_, _, correo, _, _ = helpers.MapAtributos(infoDocumento)
-		if err != nil {
-			return nil, fmt.Errorf("Error al obtener la información del correo: %v", err)
-		}
-
 	}
 
 	periodoUsuario, err := helpers.GetPeriodoUsuario(ctx, documento, query, limit, offset)
@@ -168,7 +164,7 @@ func GetAllPeriodosRoles(ctx context.Context, query map[string]string, limit int
 		}, nil
 	}
 
-	response = map[string]interface{}{
+	response = map[string]any{
 		"Data":     periodoRolUsuario,
 		"Metadata": periodosResponse.Metadata,
 	}

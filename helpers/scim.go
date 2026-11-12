@@ -17,16 +17,16 @@ import (
 	"github.com/udistrital/utils_oas/ssm"
 )
 
-// User lookups in WSO2 IS 7.3's SCIM2 API, as an M2M application.
+// User lookups in IS 7.3's SCIM2 API, using the application's client credentials.
 
 const (
 	customSchema = "urn:scim:schemas:extension:custom:User"
-	// Institutional emails are <username>@dominioInstitucional.
+	// Institutional emails are <username>@udistrital.edu.co.
 	dominioInstitucional = "udistrital.edu.co"
 	scimScopes           = "internal_user_mgt_list internal_user_mgt_view"
-	// request.GetWithContext sends this context value as the Authorization header.
+	// Context key request.GetWithContext sends as the Authorization header.
 	authorizationKey = "Authorization"
-	// utils_oas/auditoria stores the caller's token sub (from userinfo) here.
+	// Context key where utils_oas/auditoria stores the caller's token sub.
 	auditoriaUserKey = "user"
 )
 
@@ -71,11 +71,11 @@ var (
 	tokenClient = &http.Client{Timeout: 30 * time.Second}
 )
 
-// GetRolesUsuarioIS looks the user up by email when usuario has an @, else by
-// username; an institutional email no account has, by its username
-// (usuarioInstitucional). When several accounts share the email, the one the
-// caller's token belongs to wins (cuentaDelToken).
-func GetRolesUsuarioIS(ctx context.Context, usuario string) (models.AtributosToken, error) {
+// GetGruposUsuarioIS returns the user's info and groups from IS 7.3 by email or
+// username, or nil if no single account matches. An institutional email with no
+// account is looked up by its username, and when several accounts share an
+// email, the caller's own account is used.
+func GetGruposUsuarioIS(ctx context.Context, usuario string) (*models.Usuario, error) {
 	atributo := "userName"
 	if strings.Contains(usuario, "@") {
 		atributo = "emails"
@@ -90,7 +90,7 @@ func GetRolesUsuarioIS(ctx context.Context, usuario string) (models.AtributosTok
 	}
 	if err != nil {
 		logs.Error("Error al obtener los roles del usuario %s: %w", usuario, err)
-		return models.AtributosToken{}, fmt.Errorf("Error al obtener los roles del usuario %s: %w", usuario, err)
+		return nil, fmt.Errorf("Error al obtener los roles del usuario %s: %w", usuario, err)
 	}
 	if len(usuarios) > 1 {
 		if u := cuentaDelToken(ctx, usuarios); u != nil {
@@ -107,17 +107,15 @@ func GetRolesUsuarioIS(ctx context.Context, usuario string) (models.AtributosTok
 		}
 	}
 	if len(usuarios) != 1 {
-		return models.AtributosToken{Usuario: &models.UsuarioData{}}, nil
+		return nil, nil
 	}
-	return toAtributos(usuarios[0]), nil
+	return toUsuario(usuarios[0]), nil
 }
 
-// cuentaDelToken returns the account among usuarios that the caller's token
-// belongs to, if any: its sub is the account's ID, or its username, possibly
-// with the user store (PRIMARY/) and tenant (@carbon.super) IS adds per
-// application. Federated logins (e.g. Outlook) have a sub of their own that is
-// no account's, and client_credentials tokens have no user, so neither picks
-// one.
+// cuentaDelToken returns the account in usuarios that the caller's token belongs
+// to, or nil. The token's sub is the account's ID or its username, which IS may
+// prefix with PRIMARY/ and suffix with @carbon.super. Federated logins and
+// client_credentials tokens match no account.
 func cuentaDelToken(ctx context.Context, usuarios []scimUser) *scimUser {
 	sub, _ := ctx.Value(auditoriaUserKey).(string)
 	if sub == "" {
@@ -139,36 +137,15 @@ func cuentaDelToken(ctx context.Context, usuarios []scimUser) *scimUser {
 	return nil
 }
 
-// GetInfoByDocumentoIS is not wired yet: documentoToken and periods use GetInfoByDocumentoService.
-func GetInfoByDocumentoIS(ctx context.Context, documento string) (models.AtributosToken, error) {
-	atributos, err := buscarUsuario(ctx, customSchema+":documento", documento)
-	if err != nil {
-		return models.AtributosToken{}, fmt.Errorf("Error al obtener la información del documento %s: %w", documento, err)
-	}
-	return atributos, nil
-}
-
-// usuarioInstitucional returns the username of an institutional email: its
-// part before the @ (dsparedest@udistrital.edu.co is dsparedest). Used only
-// when no account has the email, for accounts whose email attribute is empty or
-// another one (Outlook logins send the institutional email). Other domains are
-// never mapped: their part before the @ may be someone else's username.
+// usuarioInstitucional returns the username of an institutional email, the part
+// before the @. It returns false for other domains, whose part before the @ may
+// be someone else's username.
 func usuarioInstitucional(email string) (string, bool) {
 	i := strings.LastIndex(email, "@")
 	if i <= 0 || !strings.EqualFold(email[i+1:], dominioInstitucional) {
 		return "", false
 	}
 	return email[:i], true
-}
-
-// buscarUsuario returns no attributes ("Usuario no registrado") unless exactly
-// one user matches.
-func buscarUsuario(ctx context.Context, atributo, valor string) (models.AtributosToken, error) {
-	usuarios, err := buscarUsuarios(ctx, atributo, valor)
-	if err != nil || len(usuarios) != 1 {
-		return models.AtributosToken{Usuario: &models.UsuarioData{}}, err
-	}
-	return toAtributos(usuarios[0]), nil
 }
 
 // buscarUsuarios returns the users whose atributo equals valor.
@@ -194,10 +171,10 @@ func buscarUsuarios(ctx context.Context, atributo, valor string) ([]scimUser, er
 	return list.Resources, nil
 }
 
-// toAtributos returns the rows vista_usuarios_atributos returned; role is
-// Internal/everyone (implicit in IS 5.3), Internal/selfsignup if the user has
-// IS's selfsignup role, then the user's groups.
-func toAtributos(u scimUser) models.AtributosToken {
+// toUsuario maps a SCIM user to a models.Usuario. Its roles are
+// Internal/everyone, Internal/selfsignup if the user has IS's selfsignup role,
+// and the user's groups.
+func toUsuario(u scimUser) *models.Usuario {
 	roles := []string{"Internal/everyone"}
 	for _, r := range u.Roles {
 		if r.AudienceType == "organization" && r.Display == "selfsignup" {
@@ -215,19 +192,13 @@ func toAtributos(u scimUser) models.AtributosToken {
 		}
 	}
 
-	data := &models.UsuarioData{}
-	for _, a := range []models.Atributo{
-		{Atributo: "role", Valor: strings.Join(roles, ",")},
-		{Atributo: "sn", Valor: u.Name.FamilyName},
-		{Atributo: "mail", Valor: mail},
-		{Atributo: "documento", Valor: u.Custom.Documento},
-		{Atributo: "documento_compuesto", Valor: u.Custom.DocumentoCompuesto},
-	} {
-		if a.Valor != "" {
-			data.Atributos = append(data.Atributos, a)
-		}
+	return &models.Usuario{
+		Roles:              roles,
+		FamilyName:         u.Name.FamilyName,
+		Email:              mail,
+		Documento:          u.Custom.Documento,
+		DocumentoCompuesto: u.Custom.DocumentoCompuesto,
 	}
-	return models.AtributosToken{Usuario: data}
 }
 
 func scimString(v string) string {
@@ -240,7 +211,8 @@ func resetToken() {
 	token = ""
 }
 
-// getToken reuses the token until a minute before it expires.
+// getToken returns the client_credentials token, reusing it until a minute
+// before it expires.
 func getToken(ctx context.Context) (string, error) {
 	tokenMu.Lock()
 	defer tokenMu.Unlock()

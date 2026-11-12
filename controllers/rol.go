@@ -144,7 +144,7 @@ func (c *RolController) GetPeriodoInfo() {
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	} else {
 		data := periodsData["Data"].([]models.PeriodoRolUsuario)
-		metadata := periodsData["Metadata"].(map[string]interface{})
+		metadata := periodsData["Metadata"].(map[string]any)
 		c.Ctx.Output.SetStatus(200)
 		c.Data["json"] = requestresponse.APIResponseMetadataDTO(true, 200, data, metadata)
 	}
@@ -200,7 +200,7 @@ func (c *RolController) GetAllPeriodos() {
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	} else {
 		data := periodsData["Data"].([]models.PeriodoRolUsuario)
-		metadata := periodsData["Metadata"].(map[string]interface{})
+		metadata := periodsData["Metadata"].(map[string]any)
 		errores := periodsData["Errores"]
 		if errores != nil {
 			c.Ctx.Output.SetStatus(200)

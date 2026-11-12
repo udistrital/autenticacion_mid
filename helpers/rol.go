@@ -88,8 +88,8 @@ func PostUsuarioRol(ctx context.Context, idUsuario int, idRol int) (models.ResUp
 	return respuesta, nil
 }
 
-func PostPerfilUsuario(ctx context.Context, idUsuario int, value string) (map[string]map[string]interface{}, error) {
-	var respuesta map[string]map[string]interface{}
+func PostPerfilUsuario(ctx context.Context, idUsuario int, value string) (map[string]map[string]any, error) {
+	var respuesta map[string]map[string]any
 	urlAddProfile := beego.AppConfig.String("Wso2UserService") + "addperfil"
 
 	body := models.AddPerfil{

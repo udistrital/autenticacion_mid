@@ -11,8 +11,9 @@ import (
 	"github.com/astaxie/beego"
 )
 
-// fakeUsuariosIS answers client_credentials tokens and SCIM2 user searches
-// (emails eq / userName eq, usernames compared case-insensitively as IS does).
+// fakeUsuariosIS starts a fake IS that returns client_credentials tokens and
+// answers SCIM2 user searches by email or username. Usernames are compared
+// case-insensitively, as IS does.
 func fakeUsuariosIS(t *testing.T, usuarios map[string]string, correos map[string][]string) {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +35,7 @@ func fakeUsuariosIS(t *testing.T, usuarios map[string]string, correos map[string
 		}
 		var res []map[string]any
 		for _, id := range ids {
-			// familyName is the username, so a test can tell which account came back.
+			// familyName is the username, so tests can tell which account was returned.
 			res = append(res, map[string]any{"id": id, "userName": usuarios[id], "name": map[string]string{"familyName": usuarios[id]}})
 		}
 		json.NewEncoder(w).Encode(map[string]any{"totalResults": len(res), "Resources": res})
@@ -47,19 +48,20 @@ func fakeUsuariosIS(t *testing.T, usuarios map[string]string, correos map[string
 	tokenMu.Unlock()
 }
 
-// An institutional email no account has is looked up by its username (Outlook
-// logins); other domains and shared emails are not.
-func TestGetRolesUsuarioISInstitucional(t *testing.T) {
+// TestGetGruposUsuarioISInstitucional checks that an institutional email with no
+// account is looked up by its username, and that other domains and shared
+// emails are not.
+func TestGetGruposUsuarioISInstitucional(t *testing.T) {
 	fakeUsuariosIS(t,
 		map[string]string{"u1": "dsparedest", "u2": "dup1", "u3": "dup2", "u4": "dup"},
 		map[string][]string{"dup@udistrital.edu.co": {"u2", "u3"}})
 	ctx := context.Background()
 	encontrado := func(usuario string) bool {
-		at, err := GetRolesUsuarioIS(ctx, usuario)
+		u, err := GetGruposUsuarioIS(ctx, usuario)
 		if err != nil {
 			t.Fatalf("%s: %v", usuario, err)
 		}
-		return len(at.Usuario.Atributos) > 0
+		return u != nil
 	}
 
 	if !encontrado("dsparedest@udistrital.edu.co") || !encontrado("DSparedest@UDistrital.edu.co") {
@@ -88,9 +90,9 @@ func TestUsuarioInstitucionalNombre(t *testing.T) {
 	}
 }
 
-// When several accounts share the email, the one the caller's token belongs to
-// wins; with no such token nothing changes.
-func TestGetRolesUsuarioISDesempateToken(t *testing.T) {
+// TestGetGruposUsuarioISDesempateToken checks that when several accounts share
+// an email, the caller's own account is used, and none is used otherwise.
+func TestGetGruposUsuarioISDesempateToken(t *testing.T) {
 	fakeUsuariosIS(t,
 		map[string]string{"9ef63ad4-0000-4000-8000-000000000001": "ana", "9ef63ad4-0000-4000-8000-000000000002": "ana.old", "u3": "otro"},
 		map[string][]string{"ana@gmail.com": {"9ef63ad4-0000-4000-8000-000000000001", "9ef63ad4-0000-4000-8000-000000000002"}})
@@ -100,26 +102,24 @@ func TestGetRolesUsuarioISDesempateToken(t *testing.T) {
 		if sub != "" {
 			ctx = context.WithValue(ctx, auditoriaUserKey, sub)
 		}
-		at, err := GetRolesUsuarioIS(ctx, "ana@gmail.com")
+		u, err := GetGruposUsuarioIS(ctx, "ana@gmail.com")
 		if err != nil {
 			t.Fatalf("sub %q: %v", sub, err)
 		}
-		for _, a := range at.Usuario.Atributos {
-			if a.Atributo == "sn" {
-				return a.Valor
-			}
+		if u == nil {
+			return ""
 		}
-		return ""
+		return u.FamilyName
 	}
 
 	for sub, want := range map[string]string{
-		"9ef63ad4-0000-4000-8000-000000000002": "ana.old", // sub is the user ID
-		"ANA":                                  "ana",     // the username, any case
-		"ana@carbon.super":                     "ana",     // with the tenant
-		"PRIMARY/ana.old@carbon.super":         "ana.old", // with the user store too
-		"otro":                                 "",        // a token of someone who is not one of them
-		"f0f0f0f0-federated-login":             "",        // a federated login's own ID
-		"":                                     "",        // no token user (e.g. client_credentials)
+		"9ef63ad4-0000-4000-8000-000000000002": "ana.old", // the account ID
+		"ANA":                                  "ana",     // the username, in any case
+		"ana@carbon.super":                     "ana",     // the username with the tenant
+		"PRIMARY/ana.old@carbon.super":         "ana.old", // the username with the user store and tenant
+		"otro":                                 "",        // another user's account
+		"f0f0f0f0-federated-login":             "",        // a federated login
+		"":                                     "",        // no user, e.g. a client_credentials token
 	} {
 		if got := elegido(sub); got != want {
 			t.Errorf("sub %q: got %q, want %q", sub, got, want)

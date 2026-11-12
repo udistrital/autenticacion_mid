@@ -11,13 +11,13 @@ import (
 )
 
 // AddRol ...
-func AddRol(ctx context.Context, user models.UpdateRol) (map[string]interface{}, error) {
+func AddRol(ctx context.Context, user models.UpdateRol) (map[string]any, error) {
 	var userName models.UserName
-	var respuesta map[string]interface{}
+	var respuesta map[string]any
 	var rolEncontrado = false
 	userName.User = user.User
 
-	RolesUsuario, err1 := GetRolesByUserCrud(ctx, userName)
+	RolesUsuario, err1 := GetRolesByUser(ctx, userName)
 
 	if err1 != nil {
 		return nil, errors.New("Error al obtener los roles del usuario en rol_service.AddRol: " + err1["Error"].(string))
@@ -27,8 +27,8 @@ func AddRol(ctx context.Context, user models.UpdateRol) (map[string]interface{},
 		if RolesUsuario.Role[i] == user.Rol {
 			// El rol ya existe en el usuario
 			rolEncontrado = true
-			returnData := map[string]interface{}{
-				"InfoUser": map[string]interface{}{
+			returnData := map[string]any{
+				"InfoUser": map[string]any{
 					"Role": RolesUsuario.Role,
 				},
 			}
@@ -86,8 +86,8 @@ func AddRol(ctx context.Context, user models.UpdateRol) (map[string]interface{},
 		}
 
 		// Estructura de respuesta
-		res := map[string]interface{}{
-			"post_addperfil": map[string]interface{}{
+		res := map[string]any{
+			"post_addperfil": map[string]any{
 				"um_attr_value": "Internal/everyone," + user.Rol,
 				"um_user_id":    idUsuario,
 			},
@@ -132,8 +132,8 @@ func AddRol(ctx context.Context, user models.UpdateRol) (map[string]interface{},
 			}
 
 			// Estructura de respuesta
-			res := map[string]interface{}{
-				"put_updateperfil": map[string]interface{}{
+			res := map[string]any{
+				"put_updateperfil": map[string]any{
 					"um_attr_value": user.Rol + "," + StringPerfil,
 					"um_id":         UmIdProfile,
 				},
@@ -144,14 +144,14 @@ func AddRol(ctx context.Context, user models.UpdateRol) (map[string]interface{},
 	return respuesta, nil
 }
 
-func RemoveRol(ctx context.Context, user models.UpdateRol) (map[string]interface{}, error) {
+func RemoveRol(ctx context.Context, user models.UpdateRol) (map[string]any, error) {
 	var userName models.UserName
 	var rolEncontrado = false
 	var rolEliminar string
 	userName.User = user.User
 
 	// Obtener Roles del Usuario
-	RolesUsuario, err1 := GetRolesByUserCrud(ctx, userName)
+	RolesUsuario, err1 := GetRolesByUser(ctx, userName)
 	if err1 != nil {
 		return nil, errors.New("Error al obtener los roles del usuario en rol_service.RemoveRol: " + err1["Error"].(string))
 	}
@@ -219,8 +219,8 @@ func RemoveRol(ctx context.Context, user models.UpdateRol) (map[string]interface
 					return nil, err
 				}
 
-				response := map[string]interface{}{
-					"put_updateperfil": map[string]interface{}{
+				response := map[string]any{
+					"put_updateperfil": map[string]any{
 						"um_attr_value": strPerfil,
 						"um_id":         UpdatePerfil.Perfiles.Perfil[0].UmId,
 					},
