@@ -5,10 +5,14 @@ import (
 	"encoding/base64"
 	"errors"
 	"os"
+	"slices"
 
+	"github.com/astaxie/beego"
 	"github.com/udistrital/autenticacion_mid/helpers"
 	"github.com/udistrital/autenticacion_mid/models"
 )
+
+var secretPrefix = beego.AppConfig.String("secretPrefix")
 
 func GetInfoByEmail(ctx context.Context, m *models.Token) (u *models.UserInfo, err error) {
 	userRoles := []string{}
@@ -19,7 +23,7 @@ func GetInfoByEmail(ctx context.Context, m *models.Token) (u *models.UserInfo, e
 	}
 
 	if len(EstudianteInfo.EstudianteCollection.Estudiante) <= 0 {
-		return nil, errors.New("Email no registrado")
+		return nil, errors.New("email no registrado")
 	}
 
 	userRoles = append(userRoles, "ESTUDIANTE")
@@ -34,8 +38,9 @@ func GetInfoByEmail(ctx context.Context, m *models.Token) (u *models.UserInfo, e
 	return u, nil
 }
 
-// GetRolesByUser returns the user's info and roles from IS 7.3, merged with their student data.
-func GetRolesByUser(ctx context.Context, user models.UserName) (*models.InfoUsuario, map[string]any) {
+// GetInfoUsuario devuelve los datos, roles y grupos del usuario en IS 7.3, junto
+// con sus datos de estudiante.
+func GetInfoUsuario(ctx context.Context, user models.UserName) (*models.InfoUsuario, map[string]any) {
 	usuario, err := helpers.GetGruposUsuarioIS(ctx, user.User)
 	if err != nil {
 		outputError := map[string]any{"Function": "FuncionalidadMidController:userRol", "Error": err}
@@ -56,7 +61,8 @@ func GetRolesByUser(ctx context.Context, user models.UserName) (*models.InfoUsua
 	return mergeUsuarioEstudiante(*usuario, estudiante), nil
 }
 
-// GetInfoDocumento returns the user's info and roles from IS 7.3 by documento, merged with their student data.
+// GetInfoDocumento devuelve los datos, roles y grupos del usuario en IS 7.3 por
+// documento, junto con sus datos de estudiante.
 func GetInfoDocumento(ctx context.Context, user models.Documento) (*models.InfoUsuario, map[string]any) {
 	usuario, err := helpers.GetInfoByDocumentoIS(ctx, user.Numero)
 	if err != nil {
@@ -78,10 +84,11 @@ func GetInfoDocumento(ctx context.Context, user models.Documento) (*models.InfoU
 	return mergeUsuarioEstudiante(*usuario, estudiante), nil
 }
 
-// mergeUsuarioEstudiante builds the user's info, adding the ESTUDIANTE role, código and estado when estudiante is not nil.
+// mergeUsuarioEstudiante construye los datos del usuario, agregando el rol
+// ESTUDIANTE, el código y el estado si estudiante no es nil.
 func mergeUsuarioEstudiante(usuario models.UsuarioIS, estudiante *models.Estudiante) *models.InfoUsuario {
 	info := &models.InfoUsuario{
-		Role:               usuario.Roles,
+		Role:               append(slices.Clone(usuario.Roles), usuario.Grupos...),
 		DocumentoCompuesto: usuario.DocumentoCompuesto,
 		Documento:          usuario.Documento,
 		Email:              usuario.Email,
@@ -96,25 +103,20 @@ func mergeUsuarioEstudiante(usuario models.UsuarioIS, estudiante *models.Estudia
 	return info
 }
 
-func GetClientAuth(req models.ClientAuthRequestBody) (response models.ClientCredentialsResponse, outputError map[string]any) {
-
-	if req.ClienteId == "" || req.Documento == "" {
-		outputError = map[string]any{"Function": "TokenController:GetClientAuth", "Error": "Debe indicar un cliente y un documento"}
-	}
-
+func GetClientAuth(ctx context.Context, req models.ClientAuthRequestBody) (response models.ClientCredentialsResponse, outputError map[string]any) {
 	decodedClientId, err := base64.StdEncoding.DecodeString(req.ClienteId)
 	if err != nil {
 		outputError = map[string]any{"Function": "TokenController:GetClientAuth", "Error": err}
+		return
 	}
 
-	secret := os.Getenv("SECRET_CLIENT_" + string(decodedClientId))
+	secret := os.Getenv(secretPrefix + string(decodedClientId))
 	if secret == "" {
 		outputError = map[string]any{"Function": "TokenController:GetClientAuth", "Error": "No se pudo generar la autorización para el cliente indicado"}
 		return
 	}
 
-	encoded := base64.StdEncoding.EncodeToString([]byte(string(decodedClientId) + ":" + secret))
-	response, err = helpers.ClientCredentialsRequest(encoded)
+	response, err = helpers.ClientCredentialsRequest(ctx, string(decodedClientId), secret, "")
 	if err != nil {
 		outputError = map[string]any{"Function": "TokenController:GetClientAuth", "Error": err}
 	}

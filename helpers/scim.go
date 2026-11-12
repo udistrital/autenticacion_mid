@@ -1,10 +1,12 @@
 package helpers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,20 +16,15 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/autenticacion_mid/models"
-	"github.com/udistrital/utils_oas/request"
 	"github.com/udistrital/utils_oas/ssm"
 )
 
-// User lookups in IS 7.3's SCIM2 API, using the application's client credentials.
+// Llamadas a WSO2 IS 7.3: operaciones sobre usuarios y grupos con su API SCIM2,
+// y tokens client_credentials.
 
 const (
-	customSchema = "urn:scim:schemas:extension:custom:User"
-	// Institutional emails are <username>@udistrital.edu.co.
-	dominioInstitucional = "udistrital.edu.co"
-	scimScopes           = "internal_user_mgt_list internal_user_mgt_view internal_group_mgt_view internal_group_mgt_update"
-	// Context key request.GetWithContext sends as the Authorization header.
-	authorizationKey = "Authorization"
-	// Context key where utils_oas/auditoria stores the caller's token sub.
+	customSchema     = "urn:scim:schemas:extension:custom:User"
+	scimScopes       = "internal_user_mgt_list internal_user_mgt_view internal_group_mgt_view internal_group_mgt_update"
 	auditoriaUserKey = "user"
 )
 
@@ -63,226 +60,239 @@ type scimList struct {
 	Resources    []scimUser `json:"Resources"`
 }
 
+type scimGroup struct {
+	ID string `json:"id"`
+}
+
+type scimGroupList struct {
+	Resources []scimGroup `json:"Resources"`
+}
+
+type scimPatch struct {
+	Schemas    []string        `json:"schemas"`
+	Operations []scimOperacion `json:"Operations"`
+}
+
+type scimOperacion struct {
+	Op    string        `json:"op"`
+	Path  string        `json:"path,omitempty"`
+	Value *scimMiembros `json:"value,omitempty"`
+}
+
+type scimMiembros struct {
+	Members []scimMiembro `json:"members"`
+}
+
+type scimMiembro struct {
+	Value   string `json:"value"`
+	Display string `json:"display,omitempty"`
+}
+
 type clientCredentials struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
 }
 
-// ErrNoExiste is wrapped by the errors for a user or role that doesn't exist.
-var ErrNoExiste = errors.New("no existe")
+var (
+	ErrUsuarioNoExiste = errors.New("el usuario no existe")
+	ErrGrupoNoExiste   = errors.New("el grupo no existe")
+)
 
 var (
 	tokenMu     sync.Mutex
 	credentials *clientCredentials
 	token       string
 	tokenExpiry time.Time
-	tokenClient = &http.Client{Timeout: 30 * time.Second}
+	isClient    = &http.Client{Timeout: 30 * time.Second}
 )
 
-// GetGruposUsuarioIS returns the user's info and groups from IS 7.3 by email or
-// username, or nil if no single account matches. An institutional email with no
-// account is looked up by its username, and when several accounts share an
-// email, the caller's own account is used.
+// GetGruposUsuarioIS devuelve los datos y grupos del usuario en IS 7.3 por correo
+// o nombre de usuario, o nil si no coincide una sola cuenta. Si varias cuentas
+// comparten el correo, se usa la del usuario del token.
 func GetGruposUsuarioIS(ctx context.Context, usuario string) (*models.UsuarioIS, error) {
 	atributo := "userName"
 	if strings.Contains(usuario, "@") {
 		atributo = "emails"
 	}
 	usuarios, err := buscarUsuarios(ctx, atributo, usuario)
-	if nombre, ok := usuarioInstitucional(usuario); err == nil && len(usuarios) == 0 && ok {
-		usuarios, err = buscarUsuarios(ctx, "userName", nombre)
-		if err == nil && len(usuarios) == 1 {
-			logs.Info("Ninguna cuenta tiene el email %s: se usa la cuenta %s (%s) por su nombre de usuario",
-				usuario, usuarios[0].UserName, usuarios[0].ID)
-		}
-	}
 	if err != nil {
-		logs.Error("Error al obtener los roles del usuario %s: %w", usuario, err)
-		return nil, fmt.Errorf("Error al obtener los roles del usuario %s: %w", usuario, err)
+		return nil, fmt.Errorf("error al obtener los grupos del usuario %s: %w", usuario, err)
 	}
-	if len(usuarios) > 1 {
-		if u := cuentaDelToken(ctx, usuarios); u != nil {
-			logs.Info("%d cuentas tienen el email %s: se usa %s (%s), la del token",
-				len(usuarios), usuario, u.UserName, u.ID)
-			usuarios = []scimUser{*u}
-		} else {
-			sub, _ := ctx.Value(auditoriaUserKey).(string)
-			if sub == "" {
-				sub = "sin usuario"
-			}
-			logs.Warning("%d cuentas tienen el email %s y ninguna es la del token (%s): usuario no registrado",
-				len(usuarios), usuario, sub)
-		}
-	}
-	if len(usuarios) != 1 {
+
+	if len(usuarios) == 0 {
+		logs.Warning("usuario no registrado %s", usuario)
 		return nil, nil
 	}
-	return toUsuario(usuarios[0]), nil
-}
 
-// cuentaDelToken returns the account in usuarios that the caller's token belongs
-// to, or nil. The token's sub is the account's ID or its username, which IS may
-// prefix with PRIMARY/ and suffix with @carbon.super. Federated logins and
-// client_credentials tokens match no account.
-func cuentaDelToken(ctx context.Context, usuarios []scimUser) *scimUser {
+	if len(usuarios) == 1 {
+		return toUsuario(usuarios[0]), nil
+	}
+
 	sub, _ := ctx.Value(auditoriaUserKey).(string)
 	if sub == "" {
-		return nil
+		logs.Warning("%d cuentas tienen el email %s y el token no tiene usuario: usuario no registrado", len(usuarios), usuario)
+		return nil, nil
 	}
+
+	if u := cuentaDelToken(sub, usuarios); u != nil {
+		logs.Info("%d cuentas tienen el email %s: se usa %s (%s), la del token", len(usuarios), usuario, u.UserName, u.ID)
+		return toUsuario(*u), nil
+	}
+
+	logs.Warning("%d cuentas tienen el email %s y ninguna es la del token (%s): usuario no registrado", len(usuarios), usuario, sub)
+
+	return nil, nil
+}
+
+// GetInfoByDocumentoIS devuelve los datos y grupos del usuario en IS 7.3 por
+// documento, o nil si no coincide una sola cuenta.
+func GetInfoByDocumentoIS(ctx context.Context, documento string) (*models.UsuarioIS, error) {
+	usuarios, err := buscarUsuarios(ctx, customSchema+":documento", documento)
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener la información del documento %s: %w", documento, err)
+	}
+
+	if len(usuarios) == 0 {
+		return nil, nil
+	}
+
+	if len(usuarios) == 1 {
+		return toUsuario(usuarios[0]), nil
+	}
+
+	logs.Warning("%d cuentas tienen el documento %s: usuario no registrado", len(usuarios), documento)
+
+	return nil, nil
+}
+
+// AgregarUsuarioGrupoIS agrega el usuario al grupo de IS 7.3 llamado grupo.
+// Falla si no hay un solo grupo con ese nombre.
+func AgregarUsuarioGrupoIS(ctx context.Context, usuario *models.UsuarioIS, grupo string) error {
+	operacion := scimOperacion{
+		Op:    "add",
+		Value: &scimMiembros{Members: []scimMiembro{{Value: usuario.ID, Display: usuario.UserName}}},
+	}
+	if err := modificarGrupo(ctx, grupo, operacion); err != nil {
+		return fmt.Errorf("error al agregar el usuario al grupo %s: %w", grupo, err)
+	}
+	return nil
+}
+
+// QuitarUsuarioGrupoIS quita el usuario con ID usuarioID del grupo de IS 7.3
+// llamado grupo. Falla si no hay un solo grupo con ese nombre.
+func QuitarUsuarioGrupoIS(ctx context.Context, usuarioID, grupo string) error {
+	operacion := scimOperacion{
+		Op:   "remove",
+		Path: "members[value eq " + scimString(usuarioID) + "]",
+	}
+	if err := modificarGrupo(ctx, grupo, operacion); err != nil {
+		return fmt.Errorf("error al quitar el usuario del grupo %s: %w", grupo, err)
+	}
+	return nil
+}
+
+func ClientCredentialsRequest(ctx context.Context, clientID, clientSecret, scope string) (models.ClientCredentialsResponse, error) {
+	form := url.Values{"grant_type": {"client_credentials"}}
+	if scope != "" {
+		form.Set("scope", scope)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, wso2ISBasePath+"/oauth2/token",
+		strings.NewReader(form.Encode()))
+	if err != nil {
+		return models.ClientCredentialsResponse{}, err
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+	req.SetBasicAuth(clientID, clientSecret)
+
+	resp, err := isClient.Do(req)
+	if err != nil {
+		return models.ClientCredentialsResponse{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return models.ClientCredentialsResponse{}, fmt.Errorf("IS respondió HTTP %d al pedir el token", resp.StatusCode)
+	}
+
+	var response models.ClientCredentialsResponse
+	err = json.NewDecoder(resp.Body).Decode(&response)
+
+	return response, err
+}
+
+// cuentaDelToken devuelve la cuenta de usuarios a la que pertenece el token con
+// el sub dado, o nil. El sub es el ID de la cuenta o su nombre de usuario, al que
+// IS puede anteponer PRIMARY/ y agregar @carbon.super. Los inicios de sesión
+// federados no coinciden con ninguna cuenta.
+func cuentaDelToken(sub string, usuarios []scimUser) *scimUser {
 	nombre := sub
 	if i := strings.Index(nombre, "/"); i >= 0 && strings.EqualFold(nombre[:i], "PRIMARY") {
 		nombre = nombre[i+1:]
 	}
+
 	if strings.HasSuffix(strings.ToLower(nombre), "@carbon.super") {
 		nombre = nombre[:len(nombre)-len("@carbon.super")]
 	}
+
 	for i := range usuarios {
 		u := &usuarios[i]
 		if (u.ID != "" && strings.EqualFold(sub, u.ID)) || strings.EqualFold(nombre, u.UserName) {
 			return u
 		}
 	}
+
 	return nil
 }
 
-// GetInfoByDocumentoIS returns the user's info and groups from IS 7.3 by
-// documento, or nil if no single account matches.
-func GetInfoByDocumentoIS(ctx context.Context, documento string) (*models.UsuarioIS, error) {
-	usuarios, err := buscarUsuarios(ctx, customSchema+":documento", documento)
-	if err != nil {
-		return nil, fmt.Errorf("Error al obtener la información del documento %s: %w", documento, err)
-	}
-	if len(usuarios) != 1 {
-		return nil, nil
-	}
-	return toUsuario(usuarios[0]), nil
-}
-
-// AgregarUsuarioGrupoIS adds the user with ID usuarioID to the IS 7.3 group
-// named grupo. It fails if no single group has that name.
-func AgregarUsuarioGrupoIS(ctx context.Context, usuarioID, grupo string) error {
-	operacion := map[string]any{
-		"op":    "add",
-		"value": map[string]any{"members": []map[string]string{{"value": usuarioID}}},
-	}
-	if err := modificarGrupo(ctx, grupo, operacion); err != nil {
-		return fmt.Errorf("Error al agregar el usuario al grupo %s: %w", grupo, err)
-	}
-	return nil
-}
-
-// QuitarUsuarioGrupoIS removes the user with ID usuarioID from the IS 7.3 group
-// named grupo. It fails if no single group has that name.
-func QuitarUsuarioGrupoIS(ctx context.Context, usuarioID, grupo string) error {
-	operacion := map[string]any{
-		"op":   "remove",
-		"path": "members[value eq " + scimString(usuarioID) + "]",
-	}
-	if err := modificarGrupo(ctx, grupo, operacion); err != nil {
-		return fmt.Errorf("Error al quitar el usuario del grupo %s: %w", grupo, err)
-	}
-	return nil
-}
-
-// modificarGrupo applies a SCIM PATCH operation to the IS 7.3 group named
-// grupo.
-func modificarGrupo(ctx context.Context, grupo string, operacion map[string]any) error {
+func modificarGrupo(ctx context.Context, grupo string, operacion scimOperacion) error {
 	grupoID, err := buscarGrupo(ctx, grupo)
 	if err != nil {
 		return err
 	}
 
-	ctx, err = conToken(ctx)
-	if err != nil {
-		return err
-	}
-
-	body := map[string]any{
-		"schemas":    []string{"urn:ietf:params:scim:api:messages:2.0:PatchOp"},
-		"Operations": []map[string]any{operacion},
+	body := scimPatch{
+		Schemas:    []string{"urn:ietf:params:scim:api:messages:2.0:PatchOp"},
+		Operations: []scimOperacion{operacion},
 	}
 	endpoint := wso2ISBasePath + "/scim2/Groups/" + url.PathEscape(grupoID)
 
-	var res map[string]any
-	status, err := request.PatchWithContext(ctx, endpoint, body, &res)
-	if status == http.StatusUnauthorized {
-		resetToken()
-	}
-	// IS may answer with no body; only a failed request is an error.
-	if err != nil && !errors.Is(err, request.ErrResponseDecode) {
-		return err
-	}
-	return nil
+	return callWSO2IS(ctx, http.MethodPatch, endpoint, body, nil)
 }
 
-// buscarGrupo returns the ID of the IS 7.3 group named nombre. It fails if no
-// single group has that name.
+// buscarGrupo devuelve el ID del grupo de IS 7.3 llamado nombre. Falla si no
+// hay un solo grupo con ese nombre.
 func buscarGrupo(ctx context.Context, nombre string) (string, error) {
-	ctx, err := conToken(ctx)
-	if err != nil {
-		return "", err
-	}
-
 	query := url.Values{}
 	query.Set("filter", "displayName eq "+scimString(nombre))
 	query.Set("attributes", "id,displayName")
 	endpoint := wso2ISBasePath + "/scim2/Groups?" + query.Encode()
 
-	var list struct {
-		Resources []struct {
-			ID string `json:"id"`
-		} `json:"Resources"`
-	}
-	status, err := request.GetWithContext(ctx, endpoint, &list)
-	if status == http.StatusUnauthorized {
-		resetToken()
-	}
-	if err != nil {
-		return "", fmt.Errorf("Error al obtener el grupo %s: %w", nombre, err)
+	var list scimGroupList
+	if err := callWSO2IS(ctx, http.MethodGet, endpoint, nil, &list); err != nil {
+		return "", fmt.Errorf("error al obtener el grupo %s: %w", nombre, err)
 	}
 	if len(list.Resources) != 1 {
-		return "", fmt.Errorf("El rol %s %w", nombre, ErrNoExiste)
+		return "", fmt.Errorf("%w: %s", ErrGrupoNoExiste, nombre)
 	}
 	return list.Resources[0].ID, nil
 }
 
-// usuarioInstitucional returns the username of an institutional email, the part
-// before the @. It returns false for other domains, whose part before the @ may
-// be someone else's username.
-func usuarioInstitucional(email string) (string, bool) {
-	i := strings.LastIndex(email, "@")
-	if i <= 0 || !strings.EqualFold(email[i+1:], dominioInstitucional) {
-		return "", false
-	}
-	return email[:i], true
-}
-
-// buscarUsuarios returns the users whose atributo equals valor.
 func buscarUsuarios(ctx context.Context, atributo, valor string) ([]scimUser, error) {
-	ctx, err := conToken(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	query := url.Values{}
 	query.Set("filter", fmt.Sprintf("%s eq %s", atributo, scimString(valor)))
 	query.Set("attributes", "id,userName,name.familyName,emails,groups,roles,"+customSchema)
 	endpoint := wso2ISBasePath + "/scim2/Users?" + query.Encode()
 
 	var list scimList
-	status, err := request.GetWithContext(ctx, endpoint, &list)
-	if status == http.StatusUnauthorized {
-		resetToken()
-	}
-	if err != nil {
+	if err := callWSO2IS(ctx, http.MethodGet, endpoint, nil, &list); err != nil {
 		return nil, err
 	}
 	return list.Resources, nil
 }
 
-// toUsuario returns the info of a SCIM user. Its roles are Internal/everyone,
-// Internal/selfsignup if the user has IS's selfsignup role, and the user's
-// groups.
 func toUsuario(u scimUser) *models.UsuarioIS {
 	roles := []string{"Internal/everyone"}
 	for _, r := range u.Roles {
@@ -291,8 +301,11 @@ func toUsuario(u scimUser) *models.UsuarioIS {
 			break
 		}
 	}
+	var grupos []string
 	for _, g := range u.Groups {
-		roles = append(roles, g.Display)
+		if GrupoGestionable(g.Display) {
+			grupos = append(grupos, g.Display)
+		}
 	}
 	mail := ""
 	for _, e := range u.Emails {
@@ -303,7 +316,9 @@ func toUsuario(u scimUser) *models.UsuarioIS {
 
 	return &models.UsuarioIS{
 		ID:                 u.ID,
+		UserName:           u.UserName,
 		Roles:              roles,
+		Grupos:             grupos,
 		FamilyName:         u.Name.FamilyName,
 		Email:              mail,
 		Documento:          u.Custom.Documento,
@@ -315,14 +330,70 @@ func scimString(v string) string {
 	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(v) + `"`
 }
 
-// conToken returns ctx with the application's token as its Authorization
-// header.
-func conToken(ctx context.Context) (context.Context, error) {
+// callWSO2IS envía payload como JSON a IS 7.3 y decodifica la respuesta en
+// target; ambos son opcionales. Si IS responde HTTP 401, reintenta una vez con un
+// token nuevo. Si la respuesta no es exitosa, el error incluye su estado y cuerpo.
+func callWSO2IS(ctx context.Context, method, endpoint string, payload, target any) error {
+	var data []byte
+	if payload != nil {
+		var err error
+		if data, err = json.Marshal(payload); err != nil {
+			return err
+		}
+	}
+
+	resp, err := enviarWSO2IS(ctx, method, endpoint, data)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		// El token pudo ser revocado antes de expirar.
+		resp.Body.Close()
+		resetToken()
+		if resp, err = enviarWSO2IS(ctx, method, endpoint, data); err != nil {
+			return err
+		}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		resetToken()
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("IS respondió HTTP %d: %s", resp.StatusCode, string(b))
+	}
+
+	if target != nil {
+		return json.NewDecoder(resp.Body).Decode(target)
+	}
+	return nil
+}
+
+// enviarWSO2IS envía una petición a IS 7.3 con el token de la aplicación y
+// devuelve la respuesta. Crea el cuerpo desde data en cada llamada para poder
+// reenviar la petición. data es opcional.
+func enviarWSO2IS(ctx context.Context, method, endpoint string, data []byte) (*http.Response, error) {
 	bearer, err := getToken(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return context.WithValue(ctx, authorizationKey, "Bearer "+bearer), nil
+
+	var body io.Reader
+	if data != nil {
+		body = bytes.NewReader(data)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+bearer)
+	req.Header.Set("Accept", "application/scim+json")
+	if data != nil {
+		req.Header.Set("Content-Type", "application/scim+json")
+	}
+
+	return isClient.Do(req)
 }
 
 func resetToken() {
@@ -331,8 +402,8 @@ func resetToken() {
 	token = ""
 }
 
-// getToken returns the client_credentials token, reusing it until a minute
-// before it expires.
+// getToken devuelve el token client_credentials, reutilizándolo hasta un minuto
+// antes de que expire.
 func getToken(ctx context.Context) (string, error) {
 	tokenMu.Lock()
 	defer tokenMu.Unlock()
@@ -361,29 +432,11 @@ func getToken(ctx context.Context) (string, error) {
 		}
 	}
 
-	form := url.Values{"grant_type": {"client_credentials"}, "scope": {scimScopes}}
-	endpoint := wso2ISBasePath + "/oauth2/token"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(form.Encode()))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.SetBasicAuth(credentials.ClientID, credentials.ClientSecret)
-
-	resp, err := tokenClient.Do(req)
+	body, err := ClientCredentialsRequest(ctx, credentials.ClientID, credentials.ClientSecret, scimScopes)
 	if err != nil {
 		return "", fmt.Errorf("no se pudo obtener el token de IS: %w", err)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("no se pudo obtener el token de IS: HTTP %d", resp.StatusCode)
-	}
-
-	var body struct {
-		AccessToken string `json:"access_token"`
-		ExpiresIn   int    `json:"expires_in"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil || body.AccessToken == "" {
+	if body.AccessToken == "" {
 		return "", fmt.Errorf("respuesta de token de IS inválida")
 	}
 

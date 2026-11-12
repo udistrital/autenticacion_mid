@@ -7,12 +7,12 @@ workspace:
 
 steps:
 - name: go_run_test
-  image: golang:1.25
+  image: golang:1.26
   commands:
     - go vet ./...
     - go fmt ./... && git diff --exit-code || (echo "Go fmt detected formatting issues! Please run 'go fmt' to format your code." && exit 1)
-    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-    - golangci-lint run --out-format=checkstyle --timeout=5m > lint_report.xml || true
+    - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+    - golangci-lint run --output.checkstyle.path=lint_report.xml --timeout=5m || true
     - cat lint_report.xml
     # - go install github.com/axw/gocov/...@latest
     # - go install github.com/AlekSi/gocov-xml@latest
@@ -30,7 +30,7 @@ steps:
       - push
 
 - name: build
-  image: golang:1.25
+  image: golang:1.26
   commands:
     - GOOS=linux GOARCH=amd64 go build -o main
   when:

@@ -1,74 +1,59 @@
 package controllers_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
+	"slices"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/udistrital/autenticacion_mid/models"
 )
 
 func TestAddRol(t *testing.T) {
-	endpoint := "http://localhost:8082/v1/rol/add"
-	contentType := "application/json"
-	body := models.UpdateRol{
-		User: "ccmendezt@udistrital.edu.co",
-		Rol:  "PLANEACION",
-	}
-
-	// Convertir el cuerpo a formato JSON
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		t.Error("Error al convertir el cuerpo a JSON:", err.Error())
-		t.Fail()
-		return
-	}
-
-	// Crear un io.Reader con los datos JSON
-	bodyReader := bytes.NewReader(bodyBytes)
-
-	if response, err := http.Post(endpoint, contentType, bodyReader); err == nil {
-		if response.StatusCode != 200 {
-			t.Error("Error en AddRol, Se esperaba 200 y se obtuvo", response.StatusCode)
-			t.Fail()
-		} else {
-			t.Log("AddRol Finalizado Correctamente (OK)")
-		}
-	} else {
-		t.Error("Error AddRol:", err.Error())
-		t.Fail()
-	}
+	conRol(t, false)
+	resp := postJSON(t, "/rol/add", models.UpdateRol{User: usuarioPrueba, Rol: rolPrueba})
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestRemoveRol(t *testing.T) {
-	endpoint := "http://localhost:8082/v1/rol/remove"
-	contentType := "application/json"
-	body := models.UpdateRol{
-		User: "ccmendezt@udistrital.edu.co",
-		Rol:  "PLANEACION",
+	conRol(t, true)
+	resp := postJSON(t, "/rol/remove", models.UpdateRol{User: usuarioPrueba, Rol: rolPrueba})
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+// conRol deja al usuario de prueba con el rol, o sin él, durante la prueba, y al
+// terminar le devuelve el estado que tenía.
+func conRol(t *testing.T, tener bool) {
+	t.Helper()
+	tenia := tieneRol(t)
+	if tenia != tener {
+		cambiarRol(t, tener)
 	}
-
-	// Convertir el cuerpo a formato JSON
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		t.Error("Error al convertir el cuerpo a JSON:", err.Error())
-		t.Fail()
-		return
-	}
-
-	// Crear un io.Reader con los datos JSON
-	bodyReader := bytes.NewReader(bodyBytes)
-
-	if response, err := http.Post(endpoint, contentType, bodyReader); err == nil {
-		if response.StatusCode != 200 {
-			t.Error("Error en AddRol, Se esperaba 200 y se obtuvo", response.StatusCode)
-			t.Fail()
-		} else {
-			t.Log("AddRol Finalizado Correctamente (OK)")
+	t.Cleanup(func() {
+		if tieneRol(t) != tenia {
+			cambiarRol(t, tenia)
 		}
-	} else {
-		t.Error("Error AddRol:", err.Error())
-		t.Fail()
+	})
+}
+
+// tieneRol indica si el usuario de prueba tiene el rol, según /token/userRol.
+func tieneRol(t *testing.T) bool {
+	t.Helper()
+	resp := postJSON(t, "/token/userRol", models.UserName{User: usuarioPrueba})
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var info models.InfoUsuario
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&info))
+	return slices.Contains(info.Role, rolPrueba)
+}
+
+func cambiarRol(t *testing.T, tener bool) {
+	t.Helper()
+	ruta := "/rol/remove"
+	if tener {
+		ruta = "/rol/add"
 	}
+	resp := postJSON(t, ruta, models.UpdateRol{User: usuarioPrueba, Rol: rolPrueba})
+	require.Equal(t, http.StatusOK, resp.StatusCode, "%s para preparar la prueba", ruta)
 }

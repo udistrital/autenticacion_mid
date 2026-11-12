@@ -35,7 +35,9 @@ type Estudiante struct {
 
 type UsuarioIS struct {
 	ID                 string
+	UserName           string
 	Roles              []string
+	Grupos             []string
 	FamilyName         string
 	Email              string
 	Documento          string
@@ -57,6 +59,6 @@ type ClientCredentialsResponse struct {
 }
 
 type ClientAuthRequestBody struct {
-	Documento string `json:"documento"`
-	ClienteId string `json:"clienteId"`
+	Documento string `json:"documento" valid:"Required"`
+	ClienteId string `json:"clienteId" valid:"Required"`
 }

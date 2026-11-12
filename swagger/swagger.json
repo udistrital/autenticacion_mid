@@ -1,16 +1,13 @@
 {
     "swagger": "2.0",
     "info": {
-        "title": "beego Test API",
-        "description": "beego has a very cool tools to autogenerate documents for your API\n",
-        "version": "1.0.0",
-        "termsOfService": "http://beego.me/",
-        "contact": {
-            "email": "astaxie@gmail.com"
-        },
+        "title": "autenticacion_mid",
+        "description": "API MID de autenticación: entrega los datos y roles de los usuarios para sus tokens, y gestiona sus roles y periodos de roles.\n",
+        "version": "0.2.1",
+        "contact": {},
         "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+            "name": "GNU GPL v3",
+            "url": "https://www.gnu.org/licenses/gpl-3.0.html"
         }
     },
     "basePath": "/v1",
@@ -20,13 +17,13 @@
                 "tags": [
                     "rol"
                 ],
-                "description": "Recibe el usuario y el rol\n\u003cbr\u003e",
+                "description": "Asigna un rol a un usuario y devuelve sus roles.\n\u003cbr\u003e",
                 "operationId": "RolController.AddRol",
                 "parameters": [
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "Usuario y roles a adicionar",
+                        "description": "Usuario (correo o nombre de usuario) y rol a asignar",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/models.UpdateRol"
@@ -37,11 +34,11 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/models.ResponseDTO"
+                            "$ref": "#/definitions/requestresponse.APIResponse"
                         }
                     },
                     "400": {
-                        "description": "El cuerpo de la petición no es válido"
+                        "description": "El cuerpo de la petición no es válido o el rol no se puede gestionar"
                     },
                     "404": {
                         "description": "El usuario o el rol no existe"
@@ -50,7 +47,7 @@
                         "description": "El rol ya está asignado al usuario"
                     },
                     "500": {
-                        "description": "Error al consultar IS"
+                        "description": "Error interno"
                     }
                 }
             }
@@ -60,31 +57,31 @@
                 "tags": [
                     "rol"
                 ],
-                "description": "Obtiene los periodos de todos los usuarios\n\u003cbr\u003e",
+                "description": "Lista los periodos de roles de todos los usuarios. Los usuarios que no se pudieron consultar se indican en Errores.\n\u003cbr\u003e",
                 "operationId": "RolController.GetAllPeriodos",
                 "parameters": [
                     {
                         "in": "query",
                         "name": "query",
-                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "description": "Filtros con el formato campo:valor,campo:valor",
                         "type": "string"
                     },
                     {
                         "in": "query",
                         "name": "RolId",
-                        "description": "Filter by RolId. Accepts a comma-separated list of IDs. e.g. 1,2,3",
+                        "description": "IDs de rol separados por comas, p. ej. 1,2,3",
                         "type": "string"
                     },
                     {
                         "in": "query",
                         "name": "limit",
-                        "description": "Limit the size of result set. Must be an integer",
+                        "description": "Cantidad máxima de resultados",
                         "type": "string"
                     },
                     {
                         "in": "query",
                         "name": "offset",
-                        "description": "Start position of result set. Must be an integer",
+                        "description": "Posición del primer resultado",
                         "type": "string"
                     }
                 ],
@@ -98,8 +95,11 @@
                             }
                         }
                     },
+                    "400": {
+                        "description": "Los parámetros de consulta no son válidos"
+                    },
                     "404": {
-                        "description": "not found resource"
+                        "description": "No se pudieron obtener los periodos"
                     }
                 }
             }
@@ -109,13 +109,13 @@
                 "tags": [
                     "rol"
                 ],
-                "description": "Recibe el usuario y el rol\n\u003cbr\u003e",
+                "description": "Quita un rol a un usuario y devuelve sus roles.\n\u003cbr\u003e",
                 "operationId": "RolController.RemoveRol",
                 "parameters": [
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "Usuario y rol a remover",
+                        "description": "Usuario (correo o nombre de usuario) y rol a quitar",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/models.UpdateRol"
@@ -126,11 +126,11 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/models.ResponseDTO"
+                            "$ref": "#/definitions/requestresponse.APIResponse"
                         }
                     },
                     "400": {
-                        "description": "El cuerpo de la petición no es válido"
+                        "description": "El cuerpo de la petición no es válido o el rol no se puede gestionar"
                     },
                     "404": {
                         "description": "El usuario o el rol no existe"
@@ -139,7 +139,7 @@
                         "description": "El usuario no tiene asignado el rol"
                     },
                     "500": {
-                        "description": "Error al consultar IS"
+                        "description": "Error interno"
                     }
                 }
             }
@@ -149,15 +149,9 @@
                 "tags": [
                     "rol"
                 ],
-                "description": "Obtiene los periodos de roles de un usuario por su documento\n\u003cbr\u003e",
+                "description": "Lista los periodos de roles de un usuario.\n\u003cbr\u003e",
                 "operationId": "RolController.GetPeriodoInfo",
                 "parameters": [
-                    {
-                        "in": "query",
-                        "name": "query",
-                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
-                        "type": "string"
-                    },
                     {
                         "in": "path",
                         "name": "documento",
@@ -167,14 +161,20 @@
                     },
                     {
                         "in": "query",
+                        "name": "query",
+                        "description": "Filtros con el formato campo:valor,campo:valor",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
                         "name": "limit",
-                        "description": "Limit the size of result set. Must be an integer",
+                        "description": "Cantidad máxima de resultados",
                         "type": "string"
                     },
                     {
                         "in": "query",
                         "name": "offset",
-                        "description": "Start position of result set. Must be an integer",
+                        "description": "Posición del primer resultado",
                         "type": "string"
                     }
                 ],
@@ -188,8 +188,14 @@
                             }
                         }
                     },
+                    "400": {
+                        "description": "Los parámetros de consulta no son válidos"
+                    },
                     "404": {
-                        "description": "not found resource"
+                        "description": "No se pudieron obtener los periodos o el tercero"
+                    },
+                    "500": {
+                        "description": "Error interno"
                     }
                 }
             }
@@ -199,13 +205,13 @@
                 "tags": [
                     "token"
                 ],
-                "description": "Recibe el id del cliente y el número de documento del usuario que solicita el token\n\u003cbr\u003e",
+                "description": "Devuelve un token client_credentials para el cliente.\n\u003cbr\u003e",
                 "operationId": "TokenController.ClientAuth",
                 "parameters": [
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "ClienteId en base64 y Número de Documento del usuario",
+                        "description": "ID del cliente en base64 y documento del usuario que pide el token",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/models.ClientAuthRequestBody"
@@ -216,11 +222,11 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/models.ClientAuthRequestBody"
+                            "$ref": "#/definitions/models.ClientCredentialsResponse"
                         }
                     },
-                    "404": {
-                        "description": "not found resource"
+                    "400": {
+                        "description": "El cuerpo no es válido, el cliente no está configurado o no se pudo obtener el token"
                     }
                 }
             }
@@ -230,7 +236,7 @@
                 "tags": [
                     "token"
                 ],
-                "description": "Recibe el documento y devuelve información detallada del usuario\n\u003cbr\u003e",
+                "description": "Devuelve los datos y roles del usuario con el documento, incluidos sus datos de estudiante.\n\u003cbr\u003e",
                 "operationId": "TokenController.GetDocumento",
                 "parameters": [
                     {
@@ -250,8 +256,8 @@
                             "$ref": "#/definitions/models.InfoUsuario"
                         }
                     },
-                    "404": {
-                        "description": "not found resource"
+                    "400": {
+                        "description": "El cuerpo no es válido, el usuario no está registrado o no se pudo consultar"
                     }
                 }
             }
@@ -261,13 +267,13 @@
                 "tags": [
                     "token"
                 ],
-                "description": "Recibe el correo electrónico del usuario desde la autenticación\n\u003cbr\u003e",
+                "description": "Devuelve el código, el estado y el rol ESTUDIANTE del estudiante con el correo.\n\u003cbr\u003e",
                 "operationId": "TokenController.GetEmail",
                 "parameters": [
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "The key for staticblock",
+                        "description": "Correo del estudiante",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/models.Token"
@@ -281,8 +287,8 @@
                             "$ref": "#/definitions/models.UserInfo"
                         }
                     },
-                    "404": {
-                        "description": "not found resource"
+                    "400": {
+                        "description": "El cuerpo no es válido o el correo no es de un estudiante"
                     }
                 }
             }
@@ -292,13 +298,13 @@
                 "tags": [
                     "token"
                 ],
-                "description": "Recibe el usuario y devuelve información detallada del usuario\n\u003cbr\u003e",
+                "description": "Devuelve los datos y roles del usuario, incluidos sus datos de estudiante.\n\u003cbr\u003e",
                 "operationId": "TokenController.GetRol",
                 "parameters": [
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "Usuario registrado en wso2",
+                        "description": "Correo o nombre de usuario",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/models.UserName"
@@ -312,8 +318,11 @@
                             "$ref": "#/definitions/models.InfoUsuario"
                         }
                     },
-                    "404": {
-                        "description": "not found resource"
+                    "400": {
+                        "description": "El cuerpo no es válido o no indica el usuario"
+                    },
+                    "500": {
+                        "description": "El usuario no está registrado o no se pudo consultar"
                     }
                 }
             }
@@ -328,6 +337,25 @@
                     "type": "string"
                 },
                 "documento": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ClientCredentialsResponse": {
+            "title": "ClientCredentialsResponse",
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "expires_in": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "scope": {
+                    "type": "string"
+                },
+                "token_type": {
                     "type": "string"
                 }
             }
@@ -427,25 +455,6 @@
                 },
                 "UsuarioId": {
                     "$ref": "#/definitions/models.Usuario"
-                }
-            }
-        },
-        "models.ResponseDTO": {
-            "title": "ResponseDTO",
-            "type": "object",
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/models.any"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -550,16 +559,20 @@
         "models.any": {
             "title": "any",
             "type": "object"
+        },
+        "requestresponse.APIResponse": {
+            "title": "APIResponse",
+            "type": "object"
         }
     },
     "tags": [
         {
             "name": "token",
-            "description": "TokenController operations for Token\n"
+            "description": "TokenController entrega la información de los usuarios para sus tokens.\n"
         },
         {
             "name": "rol",
-            "description": "RolController operations for Rol\n"
+            "description": "RolController gestiona los roles de los usuarios y sus periodos.\n"
         }
     ]
 }

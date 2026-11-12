@@ -2,12 +2,16 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
+	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/autenticacion_mid/helpers"
 	"github.com/udistrital/autenticacion_mid/models"
 )
+
+var ErrConsultaUsuario = errors.New("error al consultar el usuario")
 
 // maxConsultasConcurrentes limita las llamadas simultáneas a Terceros y a IS 7.3.
 const maxConsultasConcurrentes = 10
@@ -16,7 +20,7 @@ func GetPeriodoInfo(ctx context.Context, documento string, query map[string]stri
 
 	usuario, err := helpers.GetInfoByDocumentoIS(ctx, documento)
 	if err != nil {
-		return nil, fmt.Errorf("Error al obtener la información del documento: %v", err)
+		return nil, fmt.Errorf("%w: %w", ErrConsultaUsuario, err)
 	}
 
 	var correo string
@@ -26,12 +30,12 @@ func GetPeriodoInfo(ctx context.Context, documento string, query map[string]stri
 
 	periodoUsuario, err := helpers.GetPeriodoUsuario(ctx, documento, query, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("Error al obtener los periodos del usuario: %v", err)
+		return nil, fmt.Errorf("error al obtener los periodos del usuario: %v", err)
 	}
 
 	terceroInfo, err := helpers.GetTerceroInfo(ctx, documento)
 	if err != nil {
-		return nil, fmt.Errorf("Error al obtener la información del tercero: %v", err)
+		return nil, fmt.Errorf("error al obtener la información del tercero: %v", err)
 	}
 
 	var periodosRolUsuario []models.PeriodoRolUsuario
@@ -79,7 +83,9 @@ func consultarPersonas(ctx context.Context, documentos []string) map[string]mode
 			if info.ErrTercero == nil {
 				var usuario *models.UsuarioIS
 				usuario, info.ErrWso2 = helpers.GetInfoByDocumentoIS(ctx, documento)
-				if info.ErrWso2 == nil && usuario != nil {
+				if info.ErrWso2 != nil {
+					logs.Error(info.ErrWso2)
+				} else if usuario != nil {
 					info.Correo = usuario.Email
 				}
 			}
@@ -98,7 +104,7 @@ func GetAllPeriodosRoles(ctx context.Context, query map[string]string, limit int
 	var response map[string]any
 	periodosResponse, err := helpers.GetAllPeriodos(ctx, query, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("Error al obtener todos los periodos: %v", err)
+		return nil, fmt.Errorf("error al obtener todos los periodos: %v", err)
 	}
 
 	// Un usuario puede tener varios periodos: se consulta una vez por documento

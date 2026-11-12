@@ -78,3 +78,13 @@ type InfoPersona struct {
 	Correo     string
 	ErrWso2    error
 }
+
+// ParamsPeriodos son los parámetros de consulta, todos opcionales, de
+// /rol/periods y /rol/user/{documento}/periods. Query tiene el formato
+// campo:valor,campo:valor; RolId solo aplica a /rol/periods.
+type ParamsPeriodos struct {
+	Query  string `form:"query" valid:"Match(/^([^:,]+:[^,]*(,[^:,]+:[^,]*)*)?$/)"`
+	RolId  string `form:"RolId"`
+	Limit  int64  `form:"limit"`
+	Offset int64  `form:"offset"`
+}
