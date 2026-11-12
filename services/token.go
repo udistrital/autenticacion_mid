@@ -56,38 +56,30 @@ func GetRolesByUser(ctx context.Context, user models.UserName) (*models.InfoUsua
 	return mergeUsuarioEstudiante(*usuario, estudiante), nil
 }
 
-// GetInfoDocumento returns the user's info and roles from EI by documento, merged with their student data.
+// GetInfoDocumento returns the user's info and roles from IS 7.3 by documento, merged with their student data.
 func GetInfoDocumento(ctx context.Context, user models.Documento) (*models.InfoUsuario, map[string]any) {
-	RolesUsuario, err := helpers.GetInfoByDocumentoService(ctx, user.Numero)
+	usuario, err := helpers.GetInfoByDocumentoIS(ctx, user.Numero)
 	if err != nil {
 		outputError := map[string]any{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": err}
 		return nil, outputError
 	}
 
-	if RolesUsuario.Usuario == nil || len(RolesUsuario.Usuario.Atributos) == 0 {
+	if usuario == nil {
 		outputError := map[string]any{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": "Usuario no registrado"}
 		return nil, outputError
 	}
 
-	familyName, documento, mail, documentoCompuesto, roles := helpers.MapAtributos(RolesUsuario)
-
-	estudiante, err := helpers.GetEstudiante(ctx, mail)
+	estudiante, err := helpers.GetEstudiante(ctx, usuario.Email)
 	if err != nil {
 		outputError := map[string]any{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": err}
 		return nil, outputError
 	}
 
-	return mergeUsuarioEstudiante(models.Usuario{
-		Roles:              roles,
-		FamilyName:         familyName,
-		Email:              mail,
-		Documento:          documento,
-		DocumentoCompuesto: documentoCompuesto,
-	}, estudiante), nil
+	return mergeUsuarioEstudiante(*usuario, estudiante), nil
 }
 
 // mergeUsuarioEstudiante builds the user's info, adding the ESTUDIANTE role, código and estado when estudiante is not nil.
-func mergeUsuarioEstudiante(usuario models.Usuario, estudiante *models.Estudiante) *models.InfoUsuario {
+func mergeUsuarioEstudiante(usuario models.UsuarioIS, estudiante *models.Estudiante) *models.InfoUsuario {
 	info := &models.InfoUsuario{
 		Role:               usuario.Roles,
 		DocumentoCompuesto: usuario.DocumentoCompuesto,

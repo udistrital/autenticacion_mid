@@ -9,19 +9,19 @@ import (
 	"github.com/udistrital/autenticacion_mid/models"
 )
 
-// maxConsultasConcurrentes limita las llamadas simultáneas a Terceros y WSO2
+// maxConsultasConcurrentes limita las llamadas simultáneas a Terceros y a IS 7.3.
 const maxConsultasConcurrentes = 10
 
 func GetPeriodoInfo(ctx context.Context, documento string, query map[string]string, limit int64, offset int64) (map[string]any, error) {
 
-	infoDocumento, err := helpers.GetInfoByDocumentoService(ctx, documento)
+	usuario, err := helpers.GetInfoByDocumentoIS(ctx, documento)
 	if err != nil {
 		return nil, fmt.Errorf("Error al obtener la información del documento: %v", err)
 	}
 
 	var correo string
-	if infoDocumento.Usuario != nil {
-		_, _, correo, _, _ = helpers.MapAtributos(infoDocumento)
+	if usuario != nil {
+		correo = usuario.Email
 	}
 
 	periodoUsuario, err := helpers.GetPeriodoUsuario(ctx, documento, query, limit, offset)
@@ -59,8 +59,8 @@ func GetPeriodoInfo(ctx context.Context, documento string, query map[string]stri
 	return response, nil
 }
 
-// consultarPersonas consulta Terceros y WSO2 una sola vez por documento, en paralelo.
-// WSO2 solo se consulta si el tercero existe, igual que en el flujo secuencial original.
+// consultarPersonas consulta Terceros y IS 7.3 una sola vez por documento, en
+// paralelo. IS 7.3 solo se consulta si el tercero existe.
 func consultarPersonas(ctx context.Context, documentos []string) map[string]models.InfoPersona {
 	personas := make(map[string]models.InfoPersona, len(documentos))
 	var mu sync.Mutex
@@ -77,10 +77,10 @@ func consultarPersonas(ctx context.Context, documentos []string) map[string]mode
 			var info models.InfoPersona
 			info.Tercero, info.ErrTercero = helpers.GetTerceroInfo(ctx, documento)
 			if info.ErrTercero == nil {
-				var infoDocumento models.AtributosToken
-				infoDocumento, info.ErrWso2 = helpers.GetInfoByDocumentoService(ctx, documento)
-				if info.ErrWso2 == nil && infoDocumento.Usuario != nil {
-					_, _, info.Correo, _, _ = helpers.MapAtributos(infoDocumento)
+				var usuario *models.UsuarioIS
+				usuario, info.ErrWso2 = helpers.GetInfoByDocumentoIS(ctx, documento)
+				if info.ErrWso2 == nil && usuario != nil {
+					info.Correo = usuario.Email
 				}
 			}
 

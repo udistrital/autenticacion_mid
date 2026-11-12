@@ -16,10 +16,11 @@ import (
 )
 
 var clientCredentialsClient = &http.Client{Timeout: 30 * time.Second}
+var getCodeByEmailStudentService = beego.AppConfig.String("GetCodeByEmailStudentService")
 
 func GetCodeByEmailStudentService(ctx context.Context, email string) (models.EstudianteInfo, error) {
 	var EstudianteInfo models.EstudianteInfo
-	urlGetCodeByEmailStudentService := beego.AppConfig.String("GetCodeByEmailStudentService") + email
+	urlGetCodeByEmailStudentService := getCodeByEmailStudentService + email
 	_, err := request.GetWithContext(ctx, urlGetCodeByEmailStudentService, &EstudianteInfo)
 
 	if err != nil {
@@ -28,20 +29,6 @@ func GetCodeByEmailStudentService(ctx context.Context, email string) (models.Est
 	}
 
 	return EstudianteInfo, nil
-}
-
-// GetInfoByDocumentoService reads the user from EI (documentoToken, periods).
-func GetInfoByDocumentoService(ctx context.Context, documento string) (models.AtributosToken, error) {
-	var RolesUsuario models.AtributosToken
-	urlGetInfoByDocumentoService := beego.AppConfig.String("Wso2Service") + "usuario_documento?documento=" + documento
-
-	_, err := request.GetWithContext(ctx, urlGetInfoByDocumentoService, &RolesUsuario)
-	if err != nil {
-		return models.AtributosToken{}, fmt.Errorf("Error al obtener la información del documento %s", documento)
-	}
-
-	return RolesUsuario, nil
-
 }
 
 // GetEstudiante returns the student with the email, or nil if there is none.
@@ -58,31 +45,9 @@ func GetEstudiante(ctx context.Context, email string) (*models.Estudiante, error
 	return &EstudianteInfo.EstudianteCollection.Estudiante[0], nil
 }
 
-func MapAtributos(RolesUsuario models.AtributosToken) (string, string, string, string, []string) {
-	var familyName, documento, mail, documentoCompuesto string
-	var roles []string
-
-	for _, v := range RolesUsuario.Usuario.Atributos {
-		switch v.Atributo {
-		case "role":
-			roles = strings.Split(v.Valor, ",")
-		case "sn":
-			familyName = v.Valor
-		case "documento":
-			documento = v.Valor
-		case "documento_compuesto":
-			documentoCompuesto = v.Valor
-		case "mail":
-			mail = v.Valor
-		}
-	}
-
-	return familyName, documento, mail, documentoCompuesto, roles
-}
-
 func ClientCredentialsRequest(payload string) (models.ClientCredentialsResponse, error) {
 	form := url.Values{"grant_type": {"client_credentials"}}
-	req, err := http.NewRequest(http.MethodPost, beego.AppConfig.String("Wso2IsService")+"/oauth2/token",
+	req, err := http.NewRequest(http.MethodPost, wso2ISBasePath+"/oauth2/token",
 		strings.NewReader(form.Encode()))
 	if err != nil {
 		return models.ClientCredentialsResponse{}, err

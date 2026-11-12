@@ -41,10 +41,16 @@
                         }
                     },
                     "400": {
-                        "description": "El rol ya está asignado al usuario"
+                        "description": "El cuerpo de la petición no es válido"
                     },
                     "404": {
-                        "description": "not found resource"
+                        "description": "El usuario o el rol no existe"
+                    },
+                    "409": {
+                        "description": "El rol ya está asignado al usuario"
+                    },
+                    "500": {
+                        "description": "Error al consultar IS"
                     }
                 }
             }
@@ -123,8 +129,17 @@
                             "$ref": "#/definitions/models.ResponseDTO"
                         }
                     },
+                    "400": {
+                        "description": "El cuerpo de la petición no es válido"
+                    },
                     "404": {
-                        "description": "not found resource"
+                        "description": "El usuario o el rol no existe"
+                    },
+                    "409": {
+                        "description": "El usuario no tiene asignado el rol"
+                    },
+                    "500": {
+                        "description": "Error al consultar IS"
                     }
                 }
             }
@@ -305,18 +320,6 @@
         }
     },
     "definitions": {
-        "2496.0x50b3582889f0.false": {
-            "title": "false",
-            "type": "object"
-        },
-        "377.0x50b358281d40.false": {
-            "title": "false",
-            "type": "object"
-        },
-        "645.0x50b358281ec0.false": {
-            "title": "false",
-            "type": "object"
-        },
         "models.ClientAuthRequestBody": {
             "title": "ClientAuthRequestBody",
             "type": "object",
@@ -420,10 +423,10 @@
                     "format": "int64"
                 },
                 "RolId": {
-                    "$ref": "#/definitions/645.0x50b358281ec0.false"
+                    "$ref": "#/definitions/models.Rol"
                 },
                 "UsuarioId": {
-                    "$ref": "#/definitions/377.0x50b358281d40.false"
+                    "$ref": "#/definitions/models.Usuario"
                 }
             }
         },
@@ -432,7 +435,7 @@
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/2496.0x50b3582889f0.false"
+                    "$ref": "#/definitions/models.any"
                 },
                 "message": {
                     "type": "string"
@@ -443,6 +446,31 @@
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "models.Rol": {
+            "title": "Rol",
+            "type": "object",
+            "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
+                "FechaCreacion": {
+                    "type": "string"
+                },
+                "FechaModificacion": {
+                    "type": "string"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Nombre": {
+                    "type": "string"
+                },
+                "SistemaInformacionId": {
+                    "$ref": "#/definitions/models.any"
                 }
             }
         },
@@ -494,6 +522,28 @@
             "properties": {
                 "user": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Usuario": {
+            "title": "Usuario",
+            "type": "object",
+            "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
+                "Documento": {
+                    "type": "string"
+                },
+                "FechaCreacion": {
+                    "type": "string"
+                },
+                "FechaModificacion": {
+                    "type": "string"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
                 }
             }
         },

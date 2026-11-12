@@ -1,28 +1,32 @@
 package models
 
 type Periodo struct {
+	Id                int     `json:"Id"`
+	Activo            bool    `json:"Activo"`
+	FechaCreacion     string  `json:"FechaCreacion"`
+	FechaModificacion string  `json:"FechaModificacion"`
+	FechaInicio       string  `json:"FechaInicio"`
+	FechaFin          string  `json:"FechaFin"`
+	Finalizado        bool    `json:"Finalizado"`
+	Usuario           Usuario `json:"UsuarioId"`
+	Rol               Rol     `json:"RolId"`
+}
+
+type Usuario struct {
 	Id                int    `json:"Id"`
 	Activo            bool   `json:"Activo"`
 	FechaCreacion     string `json:"FechaCreacion"`
 	FechaModificacion string `json:"FechaModificacion"`
-	FechaInicio       string `json:"FechaInicio"`
-	FechaFin          string `json:"FechaFin"`
-	Finalizado        bool   `json:"Finalizado"`
-	Usuario           struct {
-		Id                int    `json:"Id"`
-		Activo            bool   `json:"Activo"`
-		FechaCreacion     string `json:"FechaCreacion"`
-		FechaModificacion string `json:"FechaModificacion"`
-		Documento         string `json:"Documento"`
-	} `json:"UsuarioId"`
-	Rol struct {
-		Id                 int    `json:"Id"`
-		Activo             bool   `json:"Activo"`
-		FechaCreacion      string `json:"FechaCreacion"`
-		FechaModificacion  string `json:"FechaModificacion"`
-		Nombre             string `json:"Nombre"`
-		SistemaInformacion any    `json:"SistemaInformacionId"`
-	} `json:"RolId"`
+	Documento         string `json:"Documento"`
+}
+
+type Rol struct {
+	Id                 int    `json:"Id"`
+	Activo             bool   `json:"Activo"`
+	FechaCreacion      string `json:"FechaCreacion"`
+	FechaModificacion  string `json:"FechaModificacion"`
+	Nombre             string `json:"Nombre"`
+	SistemaInformacion any    `json:"SistemaInformacionId"`
 }
 
 type Response struct {
@@ -67,7 +71,7 @@ type PeriodoRolUsuario struct {
 	IdTercero    int    `json:"id_tercero"`
 }
 
-// InfoPersona agrupa lo consultado en Terceros y WSO2 para un documento
+// InfoPersona agrupa lo consultado en Terceros y en IS 7.3 para un documento.
 type InfoPersona struct {
 	Tercero    TerceroInfo
 	ErrTercero error

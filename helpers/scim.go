@@ -3,6 +3,7 @@ package helpers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -23,12 +24,16 @@ const (
 	customSchema = "urn:scim:schemas:extension:custom:User"
 	// Institutional emails are <username>@udistrital.edu.co.
 	dominioInstitucional = "udistrital.edu.co"
-	scimScopes           = "internal_user_mgt_list internal_user_mgt_view"
+	scimScopes           = "internal_user_mgt_list internal_user_mgt_view internal_group_mgt_view internal_group_mgt_update"
 	// Context key request.GetWithContext sends as the Authorization header.
 	authorizationKey = "Authorization"
 	// Context key where utils_oas/auditoria stores the caller's token sub.
 	auditoriaUserKey = "user"
 )
+
+var wso2ISBasePath = beego.AppConfig.String("Wso2IsService")
+var wso2IsSecret = beego.AppConfig.String("Wso2IsSecret")
+var wso2IsClient = beego.AppConfig.String("Wso2IsClient")
 
 type scimUser struct {
 	ID       string `json:"id"`
@@ -63,6 +68,9 @@ type clientCredentials struct {
 	ClientSecret string `json:"client_secret"`
 }
 
+// ErrNoExiste is wrapped by the errors for a user or role that doesn't exist.
+var ErrNoExiste = errors.New("no existe")
+
 var (
 	tokenMu     sync.Mutex
 	credentials *clientCredentials
@@ -75,7 +83,7 @@ var (
 // username, or nil if no single account matches. An institutional email with no
 // account is looked up by its username, and when several accounts share an
 // email, the caller's own account is used.
-func GetGruposUsuarioIS(ctx context.Context, usuario string) (*models.Usuario, error) {
+func GetGruposUsuarioIS(ctx context.Context, usuario string) (*models.UsuarioIS, error) {
 	atributo := "userName"
 	if strings.Contains(usuario, "@") {
 		atributo = "emails"
@@ -137,6 +145,107 @@ func cuentaDelToken(ctx context.Context, usuarios []scimUser) *scimUser {
 	return nil
 }
 
+// GetInfoByDocumentoIS returns the user's info and groups from IS 7.3 by
+// documento, or nil if no single account matches.
+func GetInfoByDocumentoIS(ctx context.Context, documento string) (*models.UsuarioIS, error) {
+	usuarios, err := buscarUsuarios(ctx, customSchema+":documento", documento)
+	if err != nil {
+		return nil, fmt.Errorf("Error al obtener la información del documento %s: %w", documento, err)
+	}
+	if len(usuarios) != 1 {
+		return nil, nil
+	}
+	return toUsuario(usuarios[0]), nil
+}
+
+// AgregarUsuarioGrupoIS adds the user with ID usuarioID to the IS 7.3 group
+// named grupo. It fails if no single group has that name.
+func AgregarUsuarioGrupoIS(ctx context.Context, usuarioID, grupo string) error {
+	operacion := map[string]any{
+		"op":    "add",
+		"value": map[string]any{"members": []map[string]string{{"value": usuarioID}}},
+	}
+	if err := modificarGrupo(ctx, grupo, operacion); err != nil {
+		return fmt.Errorf("Error al agregar el usuario al grupo %s: %w", grupo, err)
+	}
+	return nil
+}
+
+// QuitarUsuarioGrupoIS removes the user with ID usuarioID from the IS 7.3 group
+// named grupo. It fails if no single group has that name.
+func QuitarUsuarioGrupoIS(ctx context.Context, usuarioID, grupo string) error {
+	operacion := map[string]any{
+		"op":   "remove",
+		"path": "members[value eq " + scimString(usuarioID) + "]",
+	}
+	if err := modificarGrupo(ctx, grupo, operacion); err != nil {
+		return fmt.Errorf("Error al quitar el usuario del grupo %s: %w", grupo, err)
+	}
+	return nil
+}
+
+// modificarGrupo applies a SCIM PATCH operation to the IS 7.3 group named
+// grupo.
+func modificarGrupo(ctx context.Context, grupo string, operacion map[string]any) error {
+	grupoID, err := buscarGrupo(ctx, grupo)
+	if err != nil {
+		return err
+	}
+
+	ctx, err = conToken(ctx)
+	if err != nil {
+		return err
+	}
+
+	body := map[string]any{
+		"schemas":    []string{"urn:ietf:params:scim:api:messages:2.0:PatchOp"},
+		"Operations": []map[string]any{operacion},
+	}
+	endpoint := wso2ISBasePath + "/scim2/Groups/" + url.PathEscape(grupoID)
+
+	var res map[string]any
+	status, err := request.PatchWithContext(ctx, endpoint, body, &res)
+	if status == http.StatusUnauthorized {
+		resetToken()
+	}
+	// IS may answer with no body; only a failed request is an error.
+	if err != nil && !errors.Is(err, request.ErrResponseDecode) {
+		return err
+	}
+	return nil
+}
+
+// buscarGrupo returns the ID of the IS 7.3 group named nombre. It fails if no
+// single group has that name.
+func buscarGrupo(ctx context.Context, nombre string) (string, error) {
+	ctx, err := conToken(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	query := url.Values{}
+	query.Set("filter", "displayName eq "+scimString(nombre))
+	query.Set("attributes", "id,displayName")
+	endpoint := wso2ISBasePath + "/scim2/Groups?" + query.Encode()
+
+	var list struct {
+		Resources []struct {
+			ID string `json:"id"`
+		} `json:"Resources"`
+	}
+	status, err := request.GetWithContext(ctx, endpoint, &list)
+	if status == http.StatusUnauthorized {
+		resetToken()
+	}
+	if err != nil {
+		return "", fmt.Errorf("Error al obtener el grupo %s: %w", nombre, err)
+	}
+	if len(list.Resources) != 1 {
+		return "", fmt.Errorf("El rol %s %w", nombre, ErrNoExiste)
+	}
+	return list.Resources[0].ID, nil
+}
+
 // usuarioInstitucional returns the username of an institutional email, the part
 // before the @. It returns false for other domains, whose part before the @ may
 // be someone else's username.
@@ -150,7 +259,7 @@ func usuarioInstitucional(email string) (string, bool) {
 
 // buscarUsuarios returns the users whose atributo equals valor.
 func buscarUsuarios(ctx context.Context, atributo, valor string) ([]scimUser, error) {
-	bearer, err := getToken(ctx)
+	ctx, err := conToken(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -158,10 +267,10 @@ func buscarUsuarios(ctx context.Context, atributo, valor string) ([]scimUser, er
 	query := url.Values{}
 	query.Set("filter", fmt.Sprintf("%s eq %s", atributo, scimString(valor)))
 	query.Set("attributes", "id,userName,name.familyName,emails,groups,roles,"+customSchema)
-	endpoint := beego.AppConfig.String("Wso2IsService") + "/scim2/Users?" + query.Encode()
+	endpoint := wso2ISBasePath + "/scim2/Users?" + query.Encode()
 
 	var list scimList
-	status, err := request.GetWithContext(context.WithValue(ctx, authorizationKey, "Bearer "+bearer), endpoint, &list)
+	status, err := request.GetWithContext(ctx, endpoint, &list)
 	if status == http.StatusUnauthorized {
 		resetToken()
 	}
@@ -171,10 +280,10 @@ func buscarUsuarios(ctx context.Context, atributo, valor string) ([]scimUser, er
 	return list.Resources, nil
 }
 
-// toUsuario maps a SCIM user to a models.Usuario. Its roles are
-// Internal/everyone, Internal/selfsignup if the user has IS's selfsignup role,
-// and the user's groups.
-func toUsuario(u scimUser) *models.Usuario {
+// toUsuario returns the info of a SCIM user. Its roles are Internal/everyone,
+// Internal/selfsignup if the user has IS's selfsignup role, and the user's
+// groups.
+func toUsuario(u scimUser) *models.UsuarioIS {
 	roles := []string{"Internal/everyone"}
 	for _, r := range u.Roles {
 		if r.AudienceType == "organization" && r.Display == "selfsignup" {
@@ -192,7 +301,8 @@ func toUsuario(u scimUser) *models.Usuario {
 		}
 	}
 
-	return &models.Usuario{
+	return &models.UsuarioIS{
+		ID:                 u.ID,
 		Roles:              roles,
 		FamilyName:         u.Name.FamilyName,
 		Email:              mail,
@@ -203,6 +313,16 @@ func toUsuario(u scimUser) *models.Usuario {
 
 func scimString(v string) string {
 	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(v) + `"`
+}
+
+// conToken returns ctx with the application's token as its Authorization
+// header.
+func conToken(ctx context.Context) (context.Context, error) {
+	bearer, err := getToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return context.WithValue(ctx, authorizationKey, "Bearer "+bearer), nil
 }
 
 func resetToken() {
@@ -223,13 +343,13 @@ func getToken(ctx context.Context) (string, error) {
 
 	if credentials == nil {
 		parameterBasePath := "/" + beego.AppConfig.String("parameterStore") + "/" + beego.AppConfig.String("appname") + "/"
-		secret, err := ssm.GetValueFromParameterStore(ctx, parameterBasePath+beego.AppConfig.String("Wso2IsSecret"))
+		secret, err := ssm.GetValueFromParameterStore(ctx, parameterBasePath+wso2IsSecret)
 		if err != nil {
 			logs.Error("Error getting Wso2IsSecret from parameter store: ", err)
 			return "", fmt.Errorf("no se pudo leer el secreto de la aplicación de IS: %w", err)
 		}
 
-		client, err := ssm.GetValueFromParameterStore(ctx, parameterBasePath+beego.AppConfig.String("Wso2IsClient"))
+		client, err := ssm.GetValueFromParameterStore(ctx, parameterBasePath+wso2IsClient)
 		if err != nil {
 			logs.Error("Error getting Wso2IsClient from parameter store: ", err)
 			return "", fmt.Errorf("no se pudo leer el client_id de la aplicación de IS: %w", err)
@@ -242,7 +362,7 @@ func getToken(ctx context.Context) (string, error) {
 	}
 
 	form := url.Values{"grant_type": {"client_credentials"}, "scope": {scimScopes}}
-	endpoint := beego.AppConfig.String("Wso2IsService") + "/oauth2/token"
+	endpoint := wso2ISBasePath + "/oauth2/token"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(form.Encode()))
 	if err != nil {
 		return "", err

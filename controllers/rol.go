@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
+	"github.com/udistrital/autenticacion_mid/helpers"
 	"github.com/udistrital/autenticacion_mid/models"
 	"github.com/udistrital/autenticacion_mid/services"
 	"github.com/udistrital/utils_oas/errorhandler"
@@ -30,31 +32,39 @@ func (c *RolController) URLMapping() {
 // @Description Recibe el usuario y el rol
 // @Param	body body 	models.UpdateRol	true "Usuario y roles a adicionar"
 // @Success 200 {object} models.ResponseDTO
-// @Failure 400 El rol ya está asignado al usuario
-// @Failure 404 not found resource
+// @Failure 400 El cuerpo de la petición no es válido
+// @Failure 404 El usuario o el rol no existe
+// @Failure 409 El rol ya está asignado al usuario
+// @Failure 500 Error al consultar IS
 // @router /add [post]
 func (c *RolController) AddRol() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	var (
-		v models.UpdateRol
-	)
+	var v models.UpdateRol
+
 	ctx := c.Ctx.Request.Context()
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err != nil {
-		beego.Error(err)
+		logs.Error(err)
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, nil, err.Error())
+		c.ServeJSON()
+		return
 	}
 
-	if response, err := services.AddRol(ctx, v); err != nil {
-		beego.Error(err)
-		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
+	if roles, yaAsignado, err := services.AddRol(ctx, v); err != nil {
+		logs.Error(err)
+		status := 500
+		if errors.Is(err, helpers.ErrNoExiste) {
+			status = 404
+		}
+		c.Ctx.Output.SetStatus(status)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, status, nil, err.Error())
 	} else {
-		if response["InfoUser"] != nil { // El rol ya existe en el usuario
-			c.Ctx.Output.SetStatus(400)
-			c.Data["json"] = requestresponse.APIResponseDTO(false, 400, response, "El rol ya está asignado al usuario")
+		response := models.ResRol{InfoUser: models.InfoUserRoles{Role: roles}}
+		if yaAsignado {
+			c.Ctx.Output.SetStatus(409)
+			c.Data["json"] = requestresponse.APIResponseDTO(false, 409, response, "El rol ya está asignado al usuario")
 		} else {
 			c.Ctx.Output.SetStatus(200)
 			c.Data["json"] = requestresponse.APIResponseDTO(true, 200, response)
@@ -69,30 +79,45 @@ func (c *RolController) AddRol() {
 // @Description Recibe el usuario y el rol
 // @Param	body body 	models.UpdateRol	true "Usuario y rol a remover"
 // @Success 200 {object} models.ResponseDTO
-// @Failure 404 not found resource
+// @Failure 400 El cuerpo de la petición no es válido
+// @Failure 404 El usuario o el rol no existe
+// @Failure 409 El usuario no tiene asignado el rol
+// @Failure 500 Error al consultar IS
 // @router /remove [post]
 func (c *RolController) RemoveRol() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	var (
-		v models.UpdateRol
-	)
+	var v models.UpdateRol
+
 	ctx := c.Ctx.Request.Context()
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err != nil {
-		beego.Error(err)
+		logs.Error(err)
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, nil, err.Error())
+		c.ServeJSON()
+		return
 	}
 
-	if response, err := services.RemoveRol(ctx, v); err != nil {
-		beego.Error(err)
-		c.Ctx.Output.SetStatus(400)
-		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, err.Error())
+	if roles, noAsignado, err := services.RemoveRol(ctx, v); err != nil {
+		logs.Error(err)
+		status := 500
+		if errors.Is(err, helpers.ErrNoExiste) {
+			status = 404
+		}
+		c.Ctx.Output.SetStatus(status)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, status, nil, err.Error())
 	} else {
-		c.Ctx.Output.SetStatus(200)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, response)
+		response := models.ResRol{InfoUser: models.InfoUserRoles{Role: roles}}
+		if noAsignado {
+			c.Ctx.Output.SetStatus(409)
+			c.Data["json"] = requestresponse.APIResponseDTO(false, 409, response, "El usuario no tiene asignado el rol")
+		} else {
+			c.Ctx.Output.SetStatus(200)
+			c.Data["json"] = requestresponse.APIResponseDTO(true, 200, response)
+		}
 	}
+
 	c.ServeJSON()
 }
 

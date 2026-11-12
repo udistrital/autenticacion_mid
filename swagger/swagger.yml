@@ -33,9 +33,13 @@ paths:
           schema:
             $ref: '#/definitions/models.ResponseDTO'
         "400":
-          description: El rol ya está asignado al usuario
+          description: El cuerpo de la petición no es válido
         "404":
-          description: not found resource
+          description: El usuario o el rol no existe
+        "409":
+          description: El rol ya está asignado al usuario
+        "500":
+          description: Error al consultar IS
   /rol/periods:
     get:
       tags:
@@ -91,8 +95,14 @@ paths:
           description: ""
           schema:
             $ref: '#/definitions/models.ResponseDTO'
+        "400":
+          description: El cuerpo de la petición no es válido
         "404":
-          description: not found resource
+          description: El usuario o el rol no existe
+        "409":
+          description: El usuario no tiene asignado el rol
+        "500":
+          description: Error al consultar IS
   /rol/user/{documento}/periods:
     get:
       tags:
@@ -217,15 +227,6 @@ paths:
         "404":
           description: not found resource
 definitions:
-  377.0x50b358281d40.false:
-    title: "false"
-    type: object
-  645.0x50b358281ec0.false:
-    title: "false"
-    type: object
-  2496.0x50b3582889f0.false:
-    title: "false"
-    type: object
   models.ClientAuthRequestBody:
     title: ClientAuthRequestBody
     type: object
@@ -297,15 +298,15 @@ definitions:
         type: integer
         format: int64
       RolId:
-        $ref: '#/definitions/645.0x50b358281ec0.false'
+        $ref: '#/definitions/models.Rol'
       UsuarioId:
-        $ref: '#/definitions/377.0x50b358281d40.false'
+        $ref: '#/definitions/models.Usuario'
   models.ResponseDTO:
     title: ResponseDTO
     type: object
     properties:
       data:
-        $ref: '#/definitions/2496.0x50b3582889f0.false'
+        $ref: '#/definitions/models.any'
       message:
         type: string
       status:
@@ -313,6 +314,23 @@ definitions:
         format: int64
       success:
         type: boolean
+  models.Rol:
+    title: Rol
+    type: object
+    properties:
+      Activo:
+        type: boolean
+      FechaCreacion:
+        type: string
+      FechaModificacion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+      SistemaInformacionId:
+        $ref: '#/definitions/models.any'
   models.Token:
     title: Token
     type: object
@@ -347,6 +365,21 @@ definitions:
     properties:
       user:
         type: string
+  models.Usuario:
+    title: Usuario
+    type: object
+    properties:
+      Activo:
+        type: boolean
+      Documento:
+        type: string
+      FechaCreacion:
+        type: string
+      FechaModificacion:
+        type: string
+      Id:
+        type: integer
+        format: int64
   models.any:
     title: any
     type: object

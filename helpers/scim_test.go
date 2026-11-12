@@ -3,6 +3,7 @@ package helpers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -124,5 +125,94 @@ func TestGetGruposUsuarioISDesempateToken(t *testing.T) {
 		if got := elegido(sub); got != want {
 			t.Errorf("sub %q: got %q, want %q", sub, got, want)
 		}
+	}
+}
+
+// parcheGrupo is a SCIM PATCH that fakeGruposIS received.
+type parcheGrupo struct {
+	grupo string
+	body  map[string]any
+}
+
+// fakeGruposIS starts a fake IS that returns client_credentials tokens, has a
+// single group, PLANEACION (ID g1), and records the PATCHes it receives.
+func fakeGruposIS(t *testing.T) *parcheGrupo {
+	t.Helper()
+	parche := &parcheGrupo{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/oauth2/token":
+			json.NewEncoder(w).Encode(map[string]any{"access_token": "t", "expires_in": 3600})
+		case r.URL.Path == "/scim2/Groups" && r.Method == http.MethodGet:
+			var res []map[string]any
+			if r.URL.Query().Get("filter") == `displayName eq "PLANEACION"` {
+				res = append(res, map[string]any{"id": "g1", "displayName": "PLANEACION"})
+			}
+			json.NewEncoder(w).Encode(map[string]any{"totalResults": len(res), "Resources": res})
+		case strings.HasPrefix(r.URL.Path, "/scim2/Groups/") && r.Method == http.MethodPatch:
+			parche.grupo = strings.TrimPrefix(r.URL.Path, "/scim2/Groups/")
+			json.NewDecoder(r.Body).Decode(&parche.body)
+			json.NewEncoder(w).Encode(map[string]any{"id": parche.grupo})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	beego.AppConfig.Set("Wso2IsService", srv.URL)
+	tokenMu.Lock()
+	credentials = &clientCredentials{ClientID: "id", ClientSecret: "secret"}
+	token = ""
+	tokenMu.Unlock()
+	return parche
+}
+
+// operacion returns the single operation of the PATCH, failing the test if
+// there is not exactly one.
+func (p *parcheGrupo) operacion(t *testing.T) map[string]any {
+	t.Helper()
+	if p.grupo != "g1" {
+		t.Errorf("patched group %q, want g1", p.grupo)
+	}
+	ops, _ := p.body["Operations"].([]any)
+	if len(ops) != 1 {
+		t.Fatalf("patch operations: %v", p.body)
+	}
+	return ops[0].(map[string]any)
+}
+
+// TestAgregarUsuarioGrupoIS checks that the user is added to the group with
+// the given name through a SCIM PATCH, and that an unknown group fails.
+func TestAgregarUsuarioGrupoIS(t *testing.T) {
+	parche := fakeGruposIS(t)
+
+	if err := AgregarUsuarioGrupoIS(context.Background(), "u1", "PLANEACION"); err != nil {
+		t.Fatalf("existing group: %v", err)
+	}
+	op := parche.operacion(t)
+	miembros, _ := op["value"].(map[string]any)["members"].([]any)
+	if op["op"] != "add" || len(miembros) != 1 || miembros[0].(map[string]any)["value"] != "u1" {
+		t.Errorf("patch operation: %v", op)
+	}
+
+	if err := AgregarUsuarioGrupoIS(context.Background(), "u1", "NO_EXISTE"); !errors.Is(err, ErrNoExiste) {
+		t.Errorf("unknown group: got %v, want ErrNoExiste", err)
+	}
+}
+
+// TestQuitarUsuarioGrupoIS checks that the user is removed from the group with
+// the given name through a SCIM PATCH, and that an unknown group fails.
+func TestQuitarUsuarioGrupoIS(t *testing.T) {
+	parche := fakeGruposIS(t)
+
+	if err := QuitarUsuarioGrupoIS(context.Background(), "u1", "PLANEACION"); err != nil {
+		t.Fatalf("existing group: %v", err)
+	}
+	op := parche.operacion(t)
+	if op["op"] != "remove" || op["path"] != `members[value eq "u1"]` {
+		t.Errorf("patch operation: %v", op)
+	}
+
+	if err := QuitarUsuarioGrupoIS(context.Background(), "u1", "NO_EXISTE"); !errors.Is(err, ErrNoExiste) {
+		t.Errorf("unknown group: got %v, want ErrNoExiste", err)
 	}
 }
