@@ -10,8 +10,8 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/validation"
-	"github.com/udistrital/autenticacion_mid/helpers"
 	"github.com/udistrital/autenticacion_mid/models"
+	"github.com/udistrital/autenticacion_mid/scim"
 	"github.com/udistrital/autenticacion_mid/services"
 	"github.com/udistrital/utils_oas/errorhandler"
 	"github.com/udistrital/utils_oas/requestresponse"
@@ -57,11 +57,11 @@ func (c *RolController) AddRol() {
 		logs.Error(err)
 		status, mensaje := 500, "Error al agregar el rol al usuario"
 		switch {
-		case errors.Is(err, helpers.ErrGrupoNoGestionable):
+		case errors.Is(err, services.ErrGrupoNoGestionable):
 			status, mensaje = 400, fmt.Sprintf("el rol %s no se puede gestionar", v.Rol)
-		case errors.Is(err, helpers.ErrUsuarioNoExiste):
+		case errors.Is(err, scim.ErrUsuarioNoExiste):
 			status, mensaje = 404, fmt.Sprintf("el usuario %s no existe", v.User)
-		case errors.Is(err, helpers.ErrGrupoNoExiste):
+		case errors.Is(err, scim.ErrGrupoNoExiste):
 			status, mensaje = 404, fmt.Sprintf("el rol %s no existe", v.Rol)
 		}
 		c.Ctx.Output.SetStatus(status)
@@ -108,11 +108,11 @@ func (c *RolController) RemoveRol() {
 		logs.Error(err)
 		status, mensaje := 500, "Error al quitar el rol al usuario"
 		switch {
-		case errors.Is(err, helpers.ErrGrupoNoGestionable):
+		case errors.Is(err, services.ErrGrupoNoGestionable):
 			status, mensaje = 400, fmt.Sprintf("el rol %s no se puede gestionar", v.Rol)
-		case errors.Is(err, helpers.ErrUsuarioNoExiste):
+		case errors.Is(err, scim.ErrUsuarioNoExiste):
 			status, mensaje = 404, fmt.Sprintf("el usuario %s no existe", v.User)
-		case errors.Is(err, helpers.ErrGrupoNoExiste):
+		case errors.Is(err, scim.ErrGrupoNoExiste):
 			status, mensaje = 404, fmt.Sprintf("el rol %s no existe", v.Rol)
 		}
 		c.Ctx.Output.SetStatus(status)
@@ -242,6 +242,6 @@ func (c *RolController) paramsPeriodos() (params models.ParamsPeriodos, query ma
 	return params, query, nil
 }
 
-func rolesUsuario(u *models.UsuarioIS) []string {
+func rolesUsuario(u *scim.Usuario) []string {
 	return append(slices.Clone(u.Roles), u.Grupos...)
 }

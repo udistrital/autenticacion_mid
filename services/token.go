@@ -10,6 +10,7 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/udistrital/autenticacion_mid/helpers"
 	"github.com/udistrital/autenticacion_mid/models"
+	"github.com/udistrital/autenticacion_mid/scim"
 )
 
 var secretPrefix = beego.AppConfig.String("secretPrefix")
@@ -38,10 +39,10 @@ func GetInfoByEmail(ctx context.Context, m *models.Token) (u *models.UserInfo, e
 	return u, nil
 }
 
-// GetInfoUsuario devuelve los datos, roles y grupos del usuario en IS 7.3, junto
-// con sus datos de estudiante.
+// GetInfoUsuario devuelve los datos, roles y grupos del usuario en IS 7.3, sin los
+// grupos con roles, junto con sus datos de estudiante.
 func GetInfoUsuario(ctx context.Context, user models.UserName) (*models.InfoUsuario, map[string]any) {
-	usuario, err := helpers.GetGruposUsuarioIS(ctx, user.User)
+	usuario, err := scim.GetGruposUsuario(ctx, user.User)
 	if err != nil {
 		outputError := map[string]any{"Function": "FuncionalidadMidController:userRol", "Error": err}
 		return nil, outputError
@@ -51,6 +52,7 @@ func GetInfoUsuario(ctx context.Context, user models.UserName) (*models.InfoUsua
 		outputError := map[string]any{"Function": "FuncionalidadMidController:userRol", "Error": "Usuario no registrado"}
 		return nil, outputError
 	}
+	usuario.Grupos = filtrarGruposConRoles(ctx, usuario.Grupos)
 
 	estudiante, err := helpers.GetEstudiante(ctx, usuario.Email)
 	if err != nil {
@@ -62,9 +64,9 @@ func GetInfoUsuario(ctx context.Context, user models.UserName) (*models.InfoUsua
 }
 
 // GetInfoDocumento devuelve los datos, roles y grupos del usuario en IS 7.3 por
-// documento, junto con sus datos de estudiante.
+// documento, sin los grupos con roles, junto con sus datos de estudiante.
 func GetInfoDocumento(ctx context.Context, user models.Documento) (*models.InfoUsuario, map[string]any) {
-	usuario, err := helpers.GetInfoByDocumentoIS(ctx, user.Numero)
+	usuario, err := scim.GetInfoByDocumento(ctx, user.Numero)
 	if err != nil {
 		outputError := map[string]any{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": err}
 		return nil, outputError
@@ -74,6 +76,7 @@ func GetInfoDocumento(ctx context.Context, user models.Documento) (*models.InfoU
 		outputError := map[string]any{"Function": "FuncionalidadMidController:GetInfoDocumento", "Error": "Usuario no registrado"}
 		return nil, outputError
 	}
+	usuario.Grupos = filtrarGruposConRoles(ctx, usuario.Grupos)
 
 	estudiante, err := helpers.GetEstudiante(ctx, usuario.Email)
 	if err != nil {
@@ -86,7 +89,7 @@ func GetInfoDocumento(ctx context.Context, user models.Documento) (*models.InfoU
 
 // mergeUsuarioEstudiante construye los datos del usuario, agregando el rol
 // ESTUDIANTE, el código y el estado si estudiante no es nil.
-func mergeUsuarioEstudiante(usuario models.UsuarioIS, estudiante *models.Estudiante) *models.InfoUsuario {
+func mergeUsuarioEstudiante(usuario scim.Usuario, estudiante *models.Estudiante) *models.InfoUsuario {
 	info := &models.InfoUsuario{
 		Role:               append(slices.Clone(usuario.Roles), usuario.Grupos...),
 		DocumentoCompuesto: usuario.DocumentoCompuesto,
@@ -116,7 +119,7 @@ func GetClientAuth(ctx context.Context, req models.ClientAuthRequestBody) (respo
 		return
 	}
 
-	response, err = helpers.ClientCredentialsRequest(ctx, string(decodedClientId), secret, "")
+	response, err = scim.ClientCredentialsRequest(ctx, string(decodedClientId), secret, "")
 	if err != nil {
 		outputError = map[string]any{"Function": "TokenController:GetClientAuth", "Error": err}
 	}

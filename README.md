@@ -25,6 +25,10 @@ Todos bajo `/v1`. La documentación completa está en `swagger/`.
 
 Los roles de un usuario son `Internal/everyone`, `Internal/selfsignup` si tiene ese rol en IS, sus grupos en IS y `ESTUDIANTE` si su correo es de un estudiante. Asignar o quitar un rol agrega o quita al usuario del grupo con ese nombre.
 
+Los grupos que tienen roles de IS asignados (de la Consola o de una aplicación) dan accesos que se administran en IS: no se devuelven como roles del usuario, y no se pueden asignar ni quitar, como los roles `Internal/*` y `Application/*` (el MID responde 400).
+
+El MID guarda en memoria durante 10 minutos si cada grupo tiene roles, así que un cambio en los roles de un grupo puede tardar hasta 10 minutos en reflejarse. Si no puede consultar un grupo, lo omite de los roles del usuario y lo vuelve a consultar en la siguiente petición.
+
 ## Especificaciones Técnicas
 
 - Go 1.26
@@ -61,10 +65,8 @@ AUTENTICACION_MID_HTTP_PORT=8080 WSO2_IS_URL=... bee run
 
 ### Pruebas Unitarias
 
-Prueban las consultas a IS contra un servidor falso:
-
 ```
-go test ./helpers/
+go test ./scim/ ./services/ ./controllers/
 ```
 
 ### Pruebas de Integración

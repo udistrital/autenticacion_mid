@@ -9,6 +9,7 @@ import (
 	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/autenticacion_mid/helpers"
 	"github.com/udistrital/autenticacion_mid/models"
+	"github.com/udistrital/autenticacion_mid/scim"
 )
 
 var ErrConsultaUsuario = errors.New("error al consultar el usuario")
@@ -18,7 +19,7 @@ const maxConsultasConcurrentes = 10
 
 func GetPeriodoInfo(ctx context.Context, documento string, query map[string]string, limit int64, offset int64) (map[string]any, error) {
 
-	usuario, err := helpers.GetInfoByDocumentoIS(ctx, documento)
+	usuario, err := scim.GetInfoByDocumento(ctx, documento)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrConsultaUsuario, err)
 	}
@@ -81,8 +82,8 @@ func consultarPersonas(ctx context.Context, documentos []string) map[string]mode
 			var info models.InfoPersona
 			info.Tercero, info.ErrTercero = helpers.GetTerceroInfo(ctx, documento)
 			if info.ErrTercero == nil {
-				var usuario *models.UsuarioIS
-				usuario, info.ErrWso2 = helpers.GetInfoByDocumentoIS(ctx, documento)
+				var usuario *scim.Usuario
+				usuario, info.ErrWso2 = scim.GetInfoByDocumento(ctx, documento)
 				if info.ErrWso2 != nil {
 					logs.Error(info.ErrWso2)
 				} else if usuario != nil {

@@ -1,4 +1,4 @@
-package helpers
+package scim
 
 import (
 	"context"
@@ -15,9 +15,8 @@ import (
 	"github.com/udistrital/autenticacion_mid/models"
 )
 
-// fakeIS inicia un IS falso que entrega el token client_credentials "t" y
-// atiende con mux las demás peticiones hechas con ese token, y dirige a él las
-// peticiones a IS hasta que termine la prueba.
+// fakeIS inicia un IS falso que entrega el token "t" y atiende con mux las
+// peticiones hechas con él, hasta que termine la prueba.
 func fakeIS(t *testing.T, mux *http.ServeMux) *httptest.Server {
 	t.Helper()
 	raiz := http.NewServeMux()
@@ -41,10 +40,9 @@ func fakeIS(t *testing.T, mux *http.ServeMux) *httptest.Server {
 	return srv
 }
 
-// fakeUsuariosIS inicia un IS falso que responde las búsquedas de usuarios
-// SCIM2. usuarios asocia el ID de cada cuenta con su nombre de usuario; filtros
-// asocia cada otro filtro SCIM con los IDs de las cuentas que coinciden. Los
-// nombres de usuario se comparan sin distinguir mayúsculas, como en IS.
+// fakeUsuariosIS inicia un IS falso que responde búsquedas de usuarios.
+// usuarios asocia cada ID con su nombre de usuario, que se compara sin distinguir
+// mayúsculas; filtros asocia los demás filtros con los IDs que coinciden.
 func fakeUsuariosIS(t *testing.T, usuarios map[string]string, filtros map[string][]string) {
 	t.Helper()
 	mux := http.NewServeMux()
@@ -71,9 +69,9 @@ func fakeUsuariosIS(t *testing.T, usuarios map[string]string, filtros map[string
 	fakeIS(t, mux)
 }
 
-// TestGetGruposUsuarioISDesempateToken comprueba que si varias cuentas comparten
-// un correo se usa la del usuario del token, y ninguna en otro caso.
-func TestGetGruposUsuarioISDesempateToken(t *testing.T) {
+// TestGetGruposUsuarioDesempateToken comprueba que si varias cuentas comparten
+// un correo se usa la del token.
+func TestGetGruposUsuarioDesempateToken(t *testing.T) {
 	fakeUsuariosIS(t,
 		map[string]string{"9ef63ad4-0000-4000-8000-000000000001": "ana", "9ef63ad4-0000-4000-8000-000000000002": "ana.old", "u3": "otro"},
 		map[string][]string{`emails eq "ana@gmail.com"`: {"9ef63ad4-0000-4000-8000-000000000001", "9ef63ad4-0000-4000-8000-000000000002"}})
@@ -83,7 +81,7 @@ func TestGetGruposUsuarioISDesempateToken(t *testing.T) {
 		if sub != "" {
 			ctx = context.WithValue(ctx, auditoriaUserKey, sub)
 		}
-		u, err := GetGruposUsuarioIS(ctx, "ana@gmail.com")
+		u, err := GetGruposUsuario(ctx, "ana@gmail.com")
 		require.NoError(t, err, "sub %q", sub)
 		if u == nil {
 			return ""
@@ -104,7 +102,7 @@ func TestGetGruposUsuarioISDesempateToken(t *testing.T) {
 	}
 }
 
-func TestGetInfoByDocumentoIS(t *testing.T) {
+func TestGetInfoByDocumento(t *testing.T) {
 	fakeUsuariosIS(t,
 		map[string]string{"u1": "ana", "u2": "dup1", "u3": "dup2"},
 		map[string][]string{
@@ -117,7 +115,7 @@ func TestGetInfoByDocumentoIS(t *testing.T) {
 		"200": "",    // varias cuentas
 		"300": "",    // ninguna cuenta
 	} {
-		u, err := GetInfoByDocumentoIS(context.Background(), documento)
+		u, err := GetInfoByDocumento(context.Background(), documento)
 		require.NoError(t, err, "documento %s", documento)
 		got := ""
 		if u != nil {
@@ -127,22 +125,26 @@ func TestGetInfoByDocumentoIS(t *testing.T) {
 	}
 }
 
-// parcheGrupo es un PATCH de SCIM que recibió fakeGruposIS.
+// parcheGrupo es un PATCH que recibió fakeGruposIS.
 type parcheGrupo struct {
 	grupo string
 	body  map[string]any
 }
 
-// fakeGruposIS inicia un IS falso que tiene un solo grupo, PLANEACION (ID g1),
-// y registra los PATCH que recibe.
+// fakeGruposIS inicia un IS falso con los grupos GRUPO (ID g1) y
+// GRUPO_CON_ROLES (ID g2, con el rol ROL), y registra los PATCH que recibe.
 func fakeGruposIS(t *testing.T) *parcheGrupo {
 	t.Helper()
 	parche := &parcheGrupo{}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /scim2/Groups", func(w http.ResponseWriter, r *http.Request) {
 		var res []map[string]any
-		if r.URL.Query().Get("filter") == `displayName eq "PLANEACION"` {
-			res = append(res, map[string]any{"id": "g1", "displayName": "PLANEACION"})
+		switch r.URL.Query().Get("filter") {
+		case `displayName eq "GRUPO"`:
+			res = append(res, map[string]any{"id": "g1", "displayName": "GRUPO"})
+		case `displayName eq "GRUPO_CON_ROLES"`:
+			res = append(res, map[string]any{"id": "g2", "displayName": "GRUPO_CON_ROLES",
+				"roles": []map[string]any{{"display": "ROL", "audienceType": "organization"}}})
 		}
 		responderJSON(t, w, map[string]any{"totalResults": len(res), "Resources": res})
 	})
@@ -157,8 +159,8 @@ func fakeGruposIS(t *testing.T) *parcheGrupo {
 	return parche
 }
 
-// operacion devuelve la única operación del PATCH, y hace fallar la prueba si el
-// PATCH no fue a g1 o no tiene exactamente una operación.
+// operacion devuelve la operación del PATCH, y hace fallar la prueba si el PATCH
+// no fue a g1 o no tiene una sola operación.
 func (p *parcheGrupo) operacion(t *testing.T) map[string]any {
 	t.Helper()
 	assert.Equal(t, "g1", p.grupo)
@@ -167,29 +169,44 @@ func (p *parcheGrupo) operacion(t *testing.T) map[string]any {
 	return ops[0].(map[string]any)
 }
 
-func TestAgregarUsuarioGrupoIS(t *testing.T) {
+func TestAgregarUsuarioGrupo(t *testing.T) {
 	parche := fakeGruposIS(t)
 
-	usuario := &models.UsuarioIS{ID: "u1", UserName: "ana"}
-	require.NoError(t, AgregarUsuarioGrupoIS(context.Background(), usuario, "PLANEACION"))
+	usuario := &Usuario{ID: "u1", UserName: "ana"}
+	require.NoError(t, AgregarUsuarioGrupo(context.Background(), usuario, "GRUPO"))
 	assert.Equal(t, map[string]any{
 		"op":    "add",
 		"value": map[string]any{"members": []any{map[string]any{"value": "u1", "display": "ana"}}},
 	}, parche.operacion(t))
 
-	assert.ErrorIs(t, AgregarUsuarioGrupoIS(context.Background(), usuario, "NO_EXISTE"), ErrGrupoNoExiste)
+	assert.ErrorIs(t, AgregarUsuarioGrupo(context.Background(), usuario, "NO_EXISTE"), ErrGrupoNoExiste)
 }
 
-func TestQuitarUsuarioGrupoIS(t *testing.T) {
+func TestQuitarUsuarioGrupo(t *testing.T) {
 	parche := fakeGruposIS(t)
 
-	require.NoError(t, QuitarUsuarioGrupoIS(context.Background(), "u1", "PLANEACION"))
+	require.NoError(t, QuitarUsuarioGrupo(context.Background(), "u1", "GRUPO"))
 	assert.Equal(t, map[string]any{
 		"op":   "remove",
 		"path": `members[value eq "u1"]`,
 	}, parche.operacion(t))
 
-	assert.ErrorIs(t, QuitarUsuarioGrupoIS(context.Background(), "u1", "NO_EXISTE"), ErrGrupoNoExiste)
+	assert.ErrorIs(t, QuitarUsuarioGrupo(context.Background(), "u1", "NO_EXISTE"), ErrGrupoNoExiste)
+}
+
+func TestGrupoConRoles(t *testing.T) {
+	fakeGruposIS(t)
+
+	conRoles, err := GrupoConRoles(context.Background(), "GRUPO_CON_ROLES")
+	require.NoError(t, err)
+	assert.True(t, conRoles)
+
+	conRoles, err = GrupoConRoles(context.Background(), "GRUPO")
+	require.NoError(t, err)
+	assert.False(t, conRoles)
+
+	_, err = GrupoConRoles(context.Background(), "NO_EXISTE")
+	assert.ErrorIs(t, err, ErrGrupoNoExiste)
 }
 
 func TestClientCredentialsRequest(t *testing.T) {
@@ -242,8 +259,8 @@ func TestCallWSO2ISErrorDetail(t *testing.T) {
 	assert.ErrorContains(t, err, `"detail":"falta el display"`)
 }
 
-// TestCallWSO2ISReintento comprueba que si IS rechaza el token guardado, la
-// petición se reintenta una vez con un token nuevo, y que no se reintenta más.
+// TestCallWSO2ISReintento comprueba que si IS rechaza el token, la petición se
+// reintenta una sola vez con uno nuevo.
 func TestCallWSO2ISReintento(t *testing.T) {
 	var tokens, peticiones int
 	valido := "nuevo"
@@ -283,8 +300,8 @@ func TestCallWSO2ISReintento(t *testing.T) {
 	assert.Equal(t, 2, peticiones, "peticiones a IS")
 }
 
-// responderJSON escribe v como JSON en la respuesta de un IS falso, y hace fallar
-// la prueba si no puede.
+// responderJSON escribe v como JSON en la respuesta, y hace fallar la prueba si
+// no puede.
 func responderJSON(t *testing.T, w http.ResponseWriter, v any) {
 	t.Helper()
 	if err := json.NewEncoder(w).Encode(v); err != nil {
@@ -295,12 +312,12 @@ func responderJSON(t *testing.T, w http.ResponseWriter, v any) {
 func TestToUsuarioGrupos(t *testing.T) {
 	var u scimUser
 	require.NoError(t, json.Unmarshal([]byte(`{
-		"groups": [{"display": "PLANEACION"}, {"display": "Internal/admin"}, {"display": "Application/app"}, {"display": "application/otra"}, {"display": "ADMIN_CAMPUS"}],
-		"roles": [{"display": "selfsignup", "audienceType": "organization"}, {"display": "admin", "audienceType": "organization"}]
+		"groups": [{"display": "GRUPO"}, {"display": "Internal/otro"}, {"display": "Application/app"}, {"display": "application/otra"}, {"display": "OTRO_GRUPO"}],
+		"roles": [{"display": "selfsignup", "audienceType": "organization"}, {"display": "OTRO_ROL", "audienceType": "organization"}]
 	}`), &u))
 	usuario := toUsuario(u)
 	assert.Equal(t, []string{"Internal/everyone", "Internal/selfsignup"}, usuario.Roles)
-	assert.Equal(t, []string{"PLANEACION", "ADMIN_CAMPUS"}, usuario.Grupos)
+	assert.Equal(t, []string{"GRUPO", "Internal/otro", "Application/app", "application/otra", "OTRO_GRUPO"}, usuario.Grupos)
 }
 
 // usarIS dirige las peticiones a IS a url hasta que termine la prueba.

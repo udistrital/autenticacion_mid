@@ -1,4 +1,4 @@
-package helpers
+package scim
 
 import (
 	"bytes"
@@ -61,7 +61,10 @@ type scimList struct {
 }
 
 type scimGroup struct {
-	ID string `json:"id"`
+	ID    string `json:"id"`
+	Roles []struct {
+		Display string `json:"display"`
+	} `json:"roles"`
 }
 
 type scimGroupList struct {
@@ -93,6 +96,18 @@ type clientCredentials struct {
 	ClientSecret string `json:"client_secret"`
 }
 
+// Usuario es un usuario de IS: sus datos, sus roles y sus grupos.
+type Usuario struct {
+	ID                 string
+	UserName           string
+	Roles              []string
+	Grupos             []string
+	FamilyName         string
+	Email              string
+	Documento          string
+	DocumentoCompuesto string
+}
+
 var (
 	ErrUsuarioNoExiste = errors.New("el usuario no existe")
 	ErrGrupoNoExiste   = errors.New("el grupo no existe")
@@ -106,10 +121,10 @@ var (
 	isClient    = &http.Client{Timeout: 30 * time.Second}
 )
 
-// GetGruposUsuarioIS devuelve los datos y grupos del usuario en IS 7.3 por correo
-// o nombre de usuario, o nil si no coincide una sola cuenta. Si varias cuentas
-// comparten el correo, se usa la del usuario del token.
-func GetGruposUsuarioIS(ctx context.Context, usuario string) (*models.UsuarioIS, error) {
+// GetGruposUsuario devuelve los datos y grupos del usuario en IS 7.3 por
+// correo o nombre de usuario, o nil si no coincide una sola cuenta. Si
+// varias cuentas comparten el correo, se usa la del usuario del token.
+func GetGruposUsuario(ctx context.Context, usuario string) (*Usuario, error) {
 	atributo := "userName"
 	if strings.Contains(usuario, "@") {
 		atributo = "emails"
@@ -124,29 +139,26 @@ func GetGruposUsuarioIS(ctx context.Context, usuario string) (*models.UsuarioIS,
 		return nil, nil
 	}
 
-	if len(usuarios) == 1 {
-		return toUsuario(usuarios[0]), nil
+	cuenta := &usuarios[0]
+	if len(usuarios) > 1 {
+		sub, _ := ctx.Value(auditoriaUserKey).(string)
+		if sub == "" {
+			logs.Warning("%d cuentas tienen el email %s y el token no tiene usuario: usuario no registrado", len(usuarios), usuario)
+			return nil, nil
+		}
+		if cuenta = cuentaDelToken(sub, usuarios); cuenta == nil {
+			logs.Warning("%d cuentas tienen el email %s y ninguna es la del token (%s): usuario no registrado", len(usuarios), usuario, sub)
+			return nil, nil
+		}
+		logs.Info("%d cuentas tienen el email %s: se usa %s (%s), la del token", len(usuarios), usuario, cuenta.UserName, cuenta.ID)
 	}
 
-	sub, _ := ctx.Value(auditoriaUserKey).(string)
-	if sub == "" {
-		logs.Warning("%d cuentas tienen el email %s y el token no tiene usuario: usuario no registrado", len(usuarios), usuario)
-		return nil, nil
-	}
-
-	if u := cuentaDelToken(sub, usuarios); u != nil {
-		logs.Info("%d cuentas tienen el email %s: se usa %s (%s), la del token", len(usuarios), usuario, u.UserName, u.ID)
-		return toUsuario(*u), nil
-	}
-
-	logs.Warning("%d cuentas tienen el email %s y ninguna es la del token (%s): usuario no registrado", len(usuarios), usuario, sub)
-
-	return nil, nil
+	return toUsuario(*cuenta), nil
 }
 
-// GetInfoByDocumentoIS devuelve los datos y grupos del usuario en IS 7.3 por
+// GetInfoByDocumento devuelve los datos y grupos del usuario en IS 7.3 por
 // documento, o nil si no coincide una sola cuenta.
-func GetInfoByDocumentoIS(ctx context.Context, documento string) (*models.UsuarioIS, error) {
+func GetInfoByDocumento(ctx context.Context, documento string) (*Usuario, error) {
 	usuarios, err := buscarUsuarios(ctx, customSchema+":documento", documento)
 	if err != nil {
 		return nil, fmt.Errorf("error al obtener la información del documento %s: %w", documento, err)
@@ -156,18 +168,17 @@ func GetInfoByDocumentoIS(ctx context.Context, documento string) (*models.Usuari
 		return nil, nil
 	}
 
-	if len(usuarios) == 1 {
-		return toUsuario(usuarios[0]), nil
+	if len(usuarios) > 1 {
+		logs.Warning("%d cuentas tienen el documento %s: usuario no registrado", len(usuarios), documento)
+		return nil, nil
 	}
 
-	logs.Warning("%d cuentas tienen el documento %s: usuario no registrado", len(usuarios), documento)
-
-	return nil, nil
+	return toUsuario(usuarios[0]), nil
 }
 
-// AgregarUsuarioGrupoIS agrega el usuario al grupo de IS 7.3 llamado grupo.
-// Falla si no hay un solo grupo con ese nombre.
-func AgregarUsuarioGrupoIS(ctx context.Context, usuario *models.UsuarioIS, grupo string) error {
+// AgregarUsuarioGrupo agrega el usuario al grupo de IS 7.3. Falla si no hay
+// un solo grupo con ese nombre.
+func AgregarUsuarioGrupo(ctx context.Context, usuario *Usuario, grupo string) error {
 	operacion := scimOperacion{
 		Op:    "add",
 		Value: &scimMiembros{Members: []scimMiembro{{Value: usuario.ID, Display: usuario.UserName}}},
@@ -178,9 +189,9 @@ func AgregarUsuarioGrupoIS(ctx context.Context, usuario *models.UsuarioIS, grupo
 	return nil
 }
 
-// QuitarUsuarioGrupoIS quita el usuario con ID usuarioID del grupo de IS 7.3
-// llamado grupo. Falla si no hay un solo grupo con ese nombre.
-func QuitarUsuarioGrupoIS(ctx context.Context, usuarioID, grupo string) error {
+// QuitarUsuarioGrupo quita el usuario con ID usuarioID del grupo de IS 7.3.
+// Falla si no hay un solo grupo con ese nombre.
+func QuitarUsuarioGrupo(ctx context.Context, usuarioID, grupo string) error {
 	operacion := scimOperacion{
 		Op:   "remove",
 		Path: "members[value eq " + scimString(usuarioID) + "]",
@@ -247,37 +258,46 @@ func cuentaDelToken(sub string, usuarios []scimUser) *scimUser {
 	return nil
 }
 
+// GrupoConRoles indica si el grupo tiene roles asignados. Falla con
+// ErrGrupoNoExiste si no hay un solo grupo con ese nombre.
+func GrupoConRoles(ctx context.Context, grupo string) (bool, error) {
+	g, err := buscarGrupo(ctx, grupo)
+	if err != nil {
+		return false, err
+	}
+	return len(g.Roles) > 0, nil
+}
+
 func modificarGrupo(ctx context.Context, grupo string, operacion scimOperacion) error {
-	grupoID, err := buscarGrupo(ctx, grupo)
+	g, err := buscarGrupo(ctx, grupo)
 	if err != nil {
 		return err
 	}
-
 	body := scimPatch{
 		Schemas:    []string{"urn:ietf:params:scim:api:messages:2.0:PatchOp"},
 		Operations: []scimOperacion{operacion},
 	}
-	endpoint := wso2ISBasePath + "/scim2/Groups/" + url.PathEscape(grupoID)
+	endpoint := wso2ISBasePath + "/scim2/Groups/" + url.PathEscape(g.ID)
 
 	return callWSO2IS(ctx, http.MethodPatch, endpoint, body, nil)
 }
 
-// buscarGrupo devuelve el ID del grupo de IS 7.3 llamado nombre. Falla si no
-// hay un solo grupo con ese nombre.
-func buscarGrupo(ctx context.Context, nombre string) (string, error) {
+// buscarGrupo busca el grupo por nombre en IS 7.3 y lo devuelve con sus roles.
+// Falla si no hay uno solo.
+func buscarGrupo(ctx context.Context, nombre string) (scimGroup, error) {
 	query := url.Values{}
 	query.Set("filter", "displayName eq "+scimString(nombre))
-	query.Set("attributes", "id,displayName")
+	query.Set("attributes", "id,displayName,roles")
 	endpoint := wso2ISBasePath + "/scim2/Groups?" + query.Encode()
 
 	var list scimGroupList
 	if err := callWSO2IS(ctx, http.MethodGet, endpoint, nil, &list); err != nil {
-		return "", fmt.Errorf("error al obtener el grupo %s: %w", nombre, err)
+		return scimGroup{}, fmt.Errorf("error al obtener el grupo %s: %w", nombre, err)
 	}
 	if len(list.Resources) != 1 {
-		return "", fmt.Errorf("%w: %s", ErrGrupoNoExiste, nombre)
+		return scimGroup{}, fmt.Errorf("%w: %s", ErrGrupoNoExiste, nombre)
 	}
-	return list.Resources[0].ID, nil
+	return list.Resources[0], nil
 }
 
 func buscarUsuarios(ctx context.Context, atributo, valor string) ([]scimUser, error) {
@@ -293,7 +313,7 @@ func buscarUsuarios(ctx context.Context, atributo, valor string) ([]scimUser, er
 	return list.Resources, nil
 }
 
-func toUsuario(u scimUser) *models.UsuarioIS {
+func toUsuario(u scimUser) *Usuario {
 	roles := []string{"Internal/everyone"}
 	for _, r := range u.Roles {
 		if r.AudienceType == "organization" && r.Display == "selfsignup" {
@@ -303,9 +323,7 @@ func toUsuario(u scimUser) *models.UsuarioIS {
 	}
 	var grupos []string
 	for _, g := range u.Groups {
-		if GrupoGestionable(g.Display) {
-			grupos = append(grupos, g.Display)
-		}
+		grupos = append(grupos, g.Display)
 	}
 	mail := ""
 	for _, e := range u.Emails {
@@ -314,7 +332,7 @@ func toUsuario(u scimUser) *models.UsuarioIS {
 		}
 	}
 
-	return &models.UsuarioIS{
+	return &Usuario{
 		ID:                 u.ID,
 		UserName:           u.UserName,
 		Roles:              roles,

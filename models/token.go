@@ -33,17 +33,6 @@ type Estudiante struct {
 	Estado string `json:"estado"`
 }
 
-type UsuarioIS struct {
-	ID                 string
-	UserName           string
-	Roles              []string
-	Grupos             []string
-	FamilyName         string
-	Email              string
-	Documento          string
-	DocumentoCompuesto string
-}
-
 type UserInfo struct {
 	Codigo string   `json:"Codigo"`
 	Estado string   `json:"Estado"`
