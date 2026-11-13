@@ -12,6 +12,9 @@ import (
 	"github.com/udistrital/utils_oas/request"
 )
 
+var rolesCrudService = beego.AppConfig.String("HistoricoRolesCrudService")
+var tercerosService = beego.AppConfig.String("TercerosService")
+
 func GetPeriodoUsuario(ctx context.Context, documento string, query map[string]string, limit int64, offset int64) (models.MetadataResponse, error) {
 	var PeriodoUsuario models.MetadataResponse
 	var queryParams []string
@@ -20,7 +23,7 @@ func GetPeriodoUsuario(ctx context.Context, documento string, query map[string]s
 	}
 	queryString := strings.Join(queryParams, "&")
 
-	urlGetPeriodoUsuario := beego.AppConfig.String("HistoricoRolesCrudService") + "usuarios/" + documento + "/periodos?" + queryString + "&limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset))
+	urlGetPeriodoUsuario := rolesCrudService + "usuarios/" + documento + "/periodos?" + queryString + "&limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset))
 
 	_, err := request.GetWithContext(ctx, urlGetPeriodoUsuario, &PeriodoUsuario)
 	if err != nil {
@@ -33,7 +36,7 @@ func GetPeriodoUsuario(ctx context.Context, documento string, query map[string]s
 
 func GetTerceroInfo(ctx context.Context, documento string) (models.TerceroInfo, error) {
 	var TerceroInfo []models.TerceroInfo
-	urlGetTerceroInfo := beego.AppConfig.String("TercerosService") + "tercero/identificacion?documento=" + documento
+	urlGetTerceroInfo := tercerosService + "tercero/identificacion?documento=" + documento
 
 	_, err := request.GetWithContext(ctx, urlGetTerceroInfo, &TerceroInfo)
 	if err != nil {
@@ -55,8 +58,7 @@ func GetAllPeriodos(ctx context.Context, query map[string]string, limit int64, o
 	}
 	queryString := strings.Join(queryParams, "&")
 
-	urlGetPeriodos := beego.AppConfig.String("HistoricoRolesCrudService") +
-		"periodos-rol-usuarios?" + queryString + "&limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset))
+	urlGetPeriodos := rolesCrudService + "periodos-rol-usuarios?" + queryString + "&limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset))
 
 	_, err := request.GetWithContext(ctx, urlGetPeriodos, &response)
 	if err != nil {

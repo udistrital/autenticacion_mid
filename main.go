@@ -27,8 +27,7 @@ func main() {
 			"Accept",
 			"Authorization",
 			"Content-Type",
-			"User-Agent",
-			"X-Amzn-Trace-Id"},
+			"User-Agent"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
