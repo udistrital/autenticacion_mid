@@ -1,23 +1,18 @@
 package models
 
-// ? Inputs structures
-// Token structure
 type Token struct {
 	Email string `json:"email"`
 }
 
-// Documento structure
 type Documento struct {
 	Numero string `json:"numero"`
 }
 
-// UserName structure
 type UserName struct {
 	User string `json:"user" valid:"Required"`
 }
 
-// Payload structure
-type Payload struct {
+type InfoUsuario struct {
 	Role               []string `json:"role"`
 	Documento          string   `json:"documento"`
 	DocumentoCompuesto string   `json:"documento_compuesto"`
@@ -27,31 +22,17 @@ type Payload struct {
 	Estado             string   `json:"Estado"`
 }
 
-// EstudianteInfo structure
 type EstudianteInfo struct {
 	EstudianteCollection struct {
-		Estudiante []struct {
-			Codigo string `json:"codigo"`
-			Estado string `json:"estado"`
-		} `json:"estudiante"`
+		Estudiante []Estudiante `json:"estudiante"`
 	} `json:"estudianteCollection"`
 }
 
-// AtributosToken structure
-type AtributosToken struct {
-	Usuario *UsuarioData
+type Estudiante struct {
+	Codigo string `json:"codigo"`
+	Estado string `json:"estado"`
 }
 
-type UsuarioData struct {
-	Atributos []Atributo
-}
-
-type Atributo struct {
-	Atributo string `json:"atributo"`
-	Valor    string `json:"valor"`
-}
-
-// UserInfo structure
 type UserInfo struct {
 	Codigo string   `json:"Codigo"`
 	Estado string   `json:"Estado"`
@@ -67,6 +48,6 @@ type ClientCredentialsResponse struct {
 }
 
 type ClientAuthRequestBody struct {
-	Documento string `json:"documento"`
-	ClienteId string `json:"clienteId"`
+	Documento string `json:"documento" valid:"Required"`
+	ClienteId string `json:"clienteId" valid:"Required"`
 }

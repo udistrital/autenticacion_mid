@@ -2,40 +2,41 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
+	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/autenticacion_mid/helpers"
 	"github.com/udistrital/autenticacion_mid/models"
+	"github.com/udistrital/autenticacion_mid/scim"
 )
 
-// maxConsultasConcurrentes limita las llamadas simultáneas a Terceros y WSO2
+var ErrConsultaUsuario = errors.New("error al consultar el usuario")
+
+// maxConsultasConcurrentes limita las llamadas simultáneas a Terceros y a IS 7.3.
 const maxConsultasConcurrentes = 10
 
 func GetPeriodoInfo(ctx context.Context, documento string, query map[string]string, limit int64, offset int64) (map[string]any, error) {
 
-	infoDocumento, err := helpers.GetInfoByDocumentoService(ctx, documento)
+	usuario, err := scim.GetInfoByDocumento(ctx, documento)
 	if err != nil {
-		return nil, fmt.Errorf("Error al obtener la información del documento: %v", err)
+		return nil, fmt.Errorf("%w: %w", ErrConsultaUsuario, err)
 	}
 
 	var correo string
-	if infoDocumento.Usuario != nil {
-		_, _, correo, _, _ = helpers.MapAtributos(infoDocumento)
-		if err != nil {
-			return nil, fmt.Errorf("Error al obtener la información del correo: %v", err)
-		}
-
+	if usuario != nil {
+		correo = usuario.Email
 	}
 
 	periodoUsuario, err := helpers.GetPeriodoUsuario(ctx, documento, query, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("Error al obtener los periodos del usuario: %v", err)
+		return nil, fmt.Errorf("error al obtener los periodos del usuario: %v", err)
 	}
 
 	terceroInfo, err := helpers.GetTerceroInfo(ctx, documento)
 	if err != nil {
-		return nil, fmt.Errorf("Error al obtener la información del tercero: %v", err)
+		return nil, fmt.Errorf("error al obtener la información del tercero: %v", err)
 	}
 
 	var periodosRolUsuario []models.PeriodoRolUsuario
@@ -63,8 +64,8 @@ func GetPeriodoInfo(ctx context.Context, documento string, query map[string]stri
 	return response, nil
 }
 
-// consultarPersonas consulta Terceros y WSO2 una sola vez por documento, en paralelo.
-// WSO2 solo se consulta si el tercero existe, igual que en el flujo secuencial original.
+// consultarPersonas consulta Terceros y IS 7.3 una sola vez por documento, en
+// paralelo. IS 7.3 solo se consulta si el tercero existe.
 func consultarPersonas(ctx context.Context, documentos []string) map[string]models.InfoPersona {
 	personas := make(map[string]models.InfoPersona, len(documentos))
 	var mu sync.Mutex
@@ -81,10 +82,12 @@ func consultarPersonas(ctx context.Context, documentos []string) map[string]mode
 			var info models.InfoPersona
 			info.Tercero, info.ErrTercero = helpers.GetTerceroInfo(ctx, documento)
 			if info.ErrTercero == nil {
-				var infoDocumento models.AtributosToken
-				infoDocumento, info.ErrWso2 = helpers.GetInfoByDocumentoService(ctx, documento)
-				if info.ErrWso2 == nil && infoDocumento.Usuario != nil {
-					_, _, info.Correo, _, _ = helpers.MapAtributos(infoDocumento)
+				var usuario *scim.Usuario
+				usuario, info.ErrWso2 = scim.GetInfoByDocumento(ctx, documento)
+				if info.ErrWso2 != nil {
+					logs.Error(info.ErrWso2)
+				} else if usuario != nil {
+					info.Correo = usuario.Email
 				}
 			}
 
@@ -102,7 +105,7 @@ func GetAllPeriodosRoles(ctx context.Context, query map[string]string, limit int
 	var response map[string]any
 	periodosResponse, err := helpers.GetAllPeriodos(ctx, query, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("Error al obtener todos los periodos: %v", err)
+		return nil, fmt.Errorf("error al obtener todos los periodos: %v", err)
 	}
 
 	// Un usuario puede tener varios periodos: se consulta una vez por documento
@@ -168,7 +171,7 @@ func GetAllPeriodosRoles(ctx context.Context, query map[string]string, limit int
 		}, nil
 	}
 
-	response = map[string]interface{}{
+	response = map[string]any{
 		"Data":     periodoRolUsuario,
 		"Metadata": periodosResponse.Metadata,
 	}

@@ -1,26 +1,26 @@
 swagger: "2.0"
 info:
-  title: beego Test API
-  description: beego has a very cool tools to autogenerate documents for your API
-  version: 1.0.0
-  termsOfService: http://beego.me/
-  contact:
-    email: astaxie@gmail.com
+  title: autenticacion_mid
+  description: |
+    API MID de autenticación: entrega los datos y roles de los usuarios para sus tokens, y gestiona sus roles y periodos de roles.
+  version: 0.2.1
   license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
+    name: GNU GPL v3
+    url: https://www.gnu.org/licenses/gpl-3.0.html
 basePath: /v1
 paths:
   /rol/add:
     post:
       tags:
       - rol
-      description: Recibe el usuario y el rol
+      description: |-
+        Asigna un rol a un usuario y devuelve sus roles.
+        <br>
       operationId: RolController.AddRol
       parameters:
       - in: body
         name: body
-        description: Usuario y roles a adicionar
+        description: Usuario (correo o nombre de usuario) y rol a asignar
         required: true
         schema:
           $ref: '#/definitions/models.UpdateRol'
@@ -28,33 +28,40 @@ paths:
         "200":
           description: ""
           schema:
-            $ref: '#/definitions/models.ResponseDTO'
+            $ref: '#/definitions/requestresponse.APIResponse'
         "400":
-          description: El rol ya está asignado al usuario
+          description: El cuerpo de la petición no es válido o el rol no se puede
+            gestionar
         "404":
-          description: not found resource
+          description: El usuario o el rol no existe
+        "409":
+          description: El rol ya está asignado al usuario
+        "500":
+          description: Error interno
   /rol/periods:
     get:
       tags:
       - rol
-      description: Obtiene los periodos de todos los usuarios
+      description: |-
+        Lista los periodos de roles de todos los usuarios. Los usuarios que no se pudieron consultar se indican en Errores.
+        <br>
       operationId: RolController.GetAllPeriodos
       parameters:
       - in: query
         name: query
-        description: Filter. e.g. col1:v1,col2:v2 ...
+        description: Filtros con el formato campo:valor,campo:valor
         type: string
       - in: query
         name: RolId
-        description: Filter by RolId. Accepts a comma-separated list of IDs. e.g. 1,2,3
+        description: IDs de rol separados por comas, p. ej. 1,2,3
         type: string
       - in: query
         name: limit
-        description: Limit the size of result set. Must be an integer
+        description: Cantidad máxima de resultados
         type: string
       - in: query
         name: offset
-        description: Start position of result set. Must be an integer
+        description: Posición del primer resultado
         type: string
       responses:
         "200":
@@ -63,18 +70,22 @@ paths:
             type: array
             items:
               $ref: '#/definitions/models.MetadataResponse'
+        "400":
+          description: Los parámetros de consulta no son válidos
         "404":
-          description: not found resource
+          description: No se pudieron obtener los periodos
   /rol/remove:
     post:
       tags:
       - rol
-      description: Recibe el usuario y el rol
+      description: |-
+        Quita un rol a un usuario y devuelve sus roles.
+        <br>
       operationId: RolController.RemoveRol
       parameters:
       - in: body
         name: body
-        description: Usuario y rol a remover
+        description: Usuario (correo o nombre de usuario) y rol a quitar
         required: true
         schema:
           $ref: '#/definitions/models.UpdateRol'
@@ -82,32 +93,41 @@ paths:
         "200":
           description: ""
           schema:
-            $ref: '#/definitions/models.ResponseDTO'
+            $ref: '#/definitions/requestresponse.APIResponse'
+        "400":
+          description: El cuerpo de la petición no es válido o el rol no se puede
+            gestionar
         "404":
-          description: not found resource
+          description: El usuario o el rol no existe
+        "409":
+          description: El usuario no tiene asignado el rol
+        "500":
+          description: Error interno
   /rol/user/{documento}/periods:
     get:
       tags:
       - rol
-      description: Obtiene los periodos de roles de un usuario por su documento
+      description: |-
+        Lista los periodos de roles de un usuario.
+        <br>
       operationId: RolController.GetPeriodoInfo
       parameters:
-      - in: query
-        name: query
-        description: Filter. e.g. col1:v1,col2:v2 ...
-        type: string
       - in: path
         name: documento
         description: Documento del usuario
         required: true
         type: string
       - in: query
+        name: query
+        description: Filtros con el formato campo:valor,campo:valor
+        type: string
+      - in: query
         name: limit
-        description: Limit the size of result set. Must be an integer
+        description: Cantidad máxima de resultados
         type: string
       - in: query
         name: offset
-        description: Start position of result set. Must be an integer
+        description: Posición del primer resultado
         type: string
       responses:
         "200":
@@ -116,18 +136,25 @@ paths:
             type: array
             items:
               $ref: '#/definitions/models.MetadataResponse'
+        "400":
+          description: Los parámetros de consulta no son válidos
         "404":
-          description: not found resource
+          description: No se pudieron obtener los periodos o el tercero
+        "500":
+          description: Error interno
   /token/clientAuth:
     post:
       tags:
       - token
-      description: Recibe el id del cliente y el número de documento del usuario que solicita el token
+      description: |-
+        Devuelve un token client_credentials para el cliente.
+        <br>
       operationId: TokenController.ClientAuth
       parameters:
       - in: body
         name: body
-        description: ClienteId en base64 y Número de Documento del usuario
+        description: ID del cliente en base64 y documento del usuario que pide el
+          token
         required: true
         schema:
           $ref: '#/definitions/models.ClientAuthRequestBody'
@@ -135,14 +162,17 @@ paths:
         "200":
           description: ""
           schema:
-            $ref: '#/definitions/models.ClientAuthRequestBody'
-        "404":
-          description: not found resource
+            $ref: '#/definitions/models.ClientCredentialsResponse'
+        "400":
+          description: El cuerpo no es válido, el cliente no está configurado o no
+            se pudo obtener el token
   /token/documentoToken:
     post:
       tags:
       - token
-      description: Recibe el documento y devuelve información detallada del usuario
+      description: |-
+        Devuelve los datos y roles del usuario con el documento, incluidos sus datos de estudiante.
+        <br>
       operationId: TokenController.GetDocumento
       parameters:
       - in: body
@@ -155,19 +185,22 @@ paths:
         "200":
           description: ""
           schema:
-            $ref: '#/definitions/models.Payload'
-        "404":
-          description: not found resource
+            $ref: '#/definitions/models.InfoUsuario'
+        "400":
+          description: El cuerpo no es válido, el usuario no está registrado o no
+            se pudo consultar
   /token/emailToken:
     post:
       tags:
       - token
-      description: Recibe el correo electrónico del usuario desde la autenticación
+      description: |-
+        Devuelve el código, el estado y el rol ESTUDIANTE del estudiante con el correo.
+        <br>
       operationId: TokenController.GetEmail
       parameters:
       - in: body
         name: body
-        description: The key for staticblock
+        description: Correo del estudiante
         required: true
         schema:
           $ref: '#/definitions/models.Token'
@@ -176,18 +209,20 @@ paths:
           description: ""
           schema:
             $ref: '#/definitions/models.UserInfo'
-        "404":
-          description: not found resource
+        "400":
+          description: El cuerpo no es válido o el correo no es de un estudiante
   /token/userRol:
     post:
       tags:
       - token
-      description: Recibe el usuario y devuelve información detallada del usuario
+      description: |-
+        Devuelve los datos y roles del usuario, incluidos sus datos de estudiante.
+        <br>
       operationId: TokenController.GetRol
       parameters:
       - in: body
         name: body
-        description: Usuario registrado en wso2
+        description: Correo o nombre de usuario
         required: true
         schema:
           $ref: '#/definitions/models.UserName'
@@ -195,19 +230,12 @@ paths:
         "200":
           description: ""
           schema:
-            $ref: '#/definitions/models.Payload'
-        "404":
-          description: not found resource
+            $ref: '#/definitions/models.InfoUsuario'
+        "400":
+          description: El cuerpo no es válido o no indica el usuario
+        "500":
+          description: El usuario no está registrado o no se pudo consultar
 definitions:
-  377.0x14000306e70.false:
-    title: "false"
-    type: object
-  645.0x14000306ea0.false:
-    title: "false"
-    type: object
-  2315.0x14000307320.false:
-    title: "false"
-    type: object
   models.ClientAuthRequestBody:
     title: ClientAuthRequestBody
     type: object
@@ -216,31 +244,27 @@ definitions:
         type: string
       documento:
         type: string
+  models.ClientCredentialsResponse:
+    title: ClientCredentialsResponse
+    type: object
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+        format: int64
+      scope:
+        type: string
+      token_type:
+        type: string
   models.Documento:
     title: Documento
     type: object
     properties:
       numero:
         type: string
-  models.MetadataResponse:
-    title: MetadataResponse
-    type: object
-    properties:
-      Data:
-        type: array
-        items:
-          $ref: '#/definitions/models.Periodo'
-      Message:
-        type: string
-      Metadata:
-        $ref: '#/definitions/models.any'
-      Status:
-        type: integer
-        format: int64
-      Success:
-        type: boolean
-  models.Payload:
-    title: Payload
+  models.InfoUsuario:
+    title: InfoUsuario
     type: object
     properties:
       Codigo:
@@ -259,6 +283,23 @@ definitions:
         type: array
         items:
           type: string
+  models.MetadataResponse:
+    title: MetadataResponse
+    type: object
+    properties:
+      Data:
+        type: array
+        items:
+          $ref: '#/definitions/models.Periodo'
+      Message:
+        type: string
+      Metadata:
+        $ref: '#/definitions/models.any'
+      Status:
+        type: integer
+        format: int64
+      Success:
+        type: boolean
   models.Periodo:
     title: Periodo
     type: object
@@ -279,22 +320,26 @@ definitions:
         type: integer
         format: int64
       RolId:
-        $ref: '#/definitions/645.0x14000306ea0.false'
+        $ref: '#/definitions/models.Rol'
       UsuarioId:
-        $ref: '#/definitions/377.0x14000306e70.false'
-  models.ResponseDTO:
-    title: ResponseDTO
+        $ref: '#/definitions/models.Usuario'
+  models.Rol:
+    title: Rol
     type: object
     properties:
-      data:
-        $ref: '#/definitions/2315.0x14000307320.false'
-      message:
+      Activo:
+        type: boolean
+      FechaCreacion:
         type: string
-      status:
+      FechaModificacion:
+        type: string
+      Id:
         type: integer
         format: int64
-      success:
-        type: boolean
+      Nombre:
+        type: string
+      SistemaInformacionId:
+        $ref: '#/definitions/models.any'
   models.Token:
     title: Token
     type: object
@@ -329,13 +374,31 @@ definitions:
     properties:
       user:
         type: string
+  models.Usuario:
+    title: Usuario
+    type: object
+    properties:
+      Activo:
+        type: boolean
+      Documento:
+        type: string
+      FechaCreacion:
+        type: string
+      FechaModificacion:
+        type: string
+      Id:
+        type: integer
+        format: int64
   models.any:
     title: any
+    type: object
+  requestresponse.APIResponse:
+    title: APIResponse
     type: object
 tags:
 - name: token
   description: |
-    TokenController operations for Token
+    TokenController entrega la información de los usuarios para sus tokens.
 - name: rol
   description: |
-    RolController operations for Rol
+    RolController gestiona los roles de los usuarios y sus periodos.
