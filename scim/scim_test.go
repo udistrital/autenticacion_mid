@@ -102,6 +102,91 @@ func TestGetGruposUsuarioDesempateToken(t *testing.T) {
 	}
 }
 
+// TestGetGruposUsuarioDesempateCorreo comprueba que si el token no es de
+// ninguna cuenta, se usa la del correo institucional.
+func TestGetGruposUsuarioDesempateCorreo(t *testing.T) {
+	usarDominio(t, "ejemplo.edu.co")
+	cuentas := map[string][]map[string]any{
+		// La cuenta propia y otra sin documento.
+		"cdbarragang@ejemplo.edu.co": {
+			{"id": "u1", "userName": "CBG"},
+			{"id": "u2", "userName": "cdbarragang", customSchema: map[string]string{"documento": "100"}},
+		},
+		// Ninguna sigue la convención.
+		"ana@ejemplo.edu.co": {
+			{"id": "u3", "userName": "ana1", customSchema: map[string]string{"documento": "200"}},
+			{"id": "u4", "userName": "ana2", customSchema: map[string]string{"documento": "200"}},
+		},
+		// Correo no institucional.
+		"luis@gmail.com": {
+			{"id": "u5", "userName": "luis", customSchema: map[string]string{"documento": "300"}},
+			{"id": "u6", "userName": "luis2", customSchema: map[string]string{"documento": "300"}},
+		},
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /scim2/Users", func(w http.ResponseWriter, r *http.Request) {
+		filter := r.URL.Query().Get("filter")
+		res := cuentas[strings.Trim(filter[strings.Index(filter, `"`):], `"`)]
+		responderJSON(t, w, map[string]any{"totalResults": len(res), "Resources": res})
+	})
+	fakeIS(t, mux)
+
+	federado := context.WithValue(context.Background(), auditoriaUserKey, "f0f0f0f0-federated-login")
+	for _, ctx := range []context.Context{federado, context.Background()} {
+		u, err := GetGruposUsuario(ctx, "cdbarragang@ejemplo.edu.co")
+		require.NoError(t, err)
+		require.NotNil(t, u)
+		assert.Equal(t, "u2", u.ID)
+
+		for _, correo := range []string{"ana@ejemplo.edu.co", "luis@gmail.com"} {
+			u, err = GetGruposUsuario(ctx, correo)
+			require.NoError(t, err)
+			assert.Nil(t, u, correo)
+		}
+	}
+
+	// El token tiene prioridad.
+	u, err := GetGruposUsuario(context.WithValue(context.Background(), auditoriaUserKey, "u1"), "cdbarragang@ejemplo.edu.co")
+	require.NoError(t, err)
+	require.NotNil(t, u)
+	assert.Equal(t, "u1", u.ID)
+}
+
+func TestCuentaDelCorreo(t *testing.T) {
+	usarDominio(t, "ejemplo.edu.co")
+	cuenta := func(nombre, documento string) scimUser {
+		var u scimUser
+		u.UserName = nombre
+		u.Custom.Documento = documento
+		return u
+	}
+	for _, c := range []struct {
+		nombre   string
+		correo   string
+		usuarios []scimUser
+		want     string
+	}{
+		{"la convención con documento", "ana@ejemplo.edu.co", []scimUser{cuenta("ANA2", "1"), cuenta("Ana", "1")}, "Ana"},
+		{"sin documento", "ana@ejemplo.edu.co", []scimUser{cuenta("ana", ""), cuenta("ana2", "1")}, ""},
+		{"ninguna sigue la convención", "ana@ejemplo.edu.co", []scimUser{cuenta("ana1", "1"), cuenta("ana2", "1")}, ""},
+		{"dos siguen la convención", "ana@ejemplo.edu.co", []scimUser{cuenta("ana", "1"), cuenta("ANA", "2")}, ""},
+		{"correo institucional en mayúsculas", "Ana@Ejemplo.edu.co", []scimUser{cuenta("ana", "1"), cuenta("ana2", "1")}, "ana"},
+		{"correo no institucional", "ana@gmail.com", []scimUser{cuenta("ana", "1"), cuenta("ana2", "1")}, ""},
+		{"subdominio", "ana@correo.ejemplo.edu.co", []scimUser{cuenta("ana", "1"), cuenta("ana2", "1")}, ""},
+		{"solo el dominio", "@ejemplo.edu.co", []scimUser{cuenta("", "1")}, ""},
+		{"no es un correo", "ana", []scimUser{cuenta("ana", "1")}, ""},
+	} {
+		got := ""
+		if u := cuentaDelCorreo(c.correo, c.usuarios); u != nil {
+			got = u.UserName
+		}
+		assert.Equal(t, c.want, got, c.nombre)
+	}
+
+	usarDominio(t, "")
+	assert.Nil(t, cuentaDelCorreo("ana@ejemplo.edu.co", []scimUser{cuenta("ana", "1")}), "sin dominio configurado")
+}
+
 func TestGetInfoByDocumento(t *testing.T) {
 	fakeUsuariosIS(t,
 		map[string]string{"u1": "ana", "u2": "dup1", "u3": "dup2"},
@@ -326,4 +411,12 @@ func usarIS(t *testing.T, url string) {
 	anterior := wso2ISBasePath
 	wso2ISBasePath = url
 	t.Cleanup(func() { wso2ISBasePath = anterior })
+}
+
+// usarDominio usa dominio como dominio institucional hasta que termine la prueba.
+func usarDominio(t *testing.T, dominio string) {
+	t.Helper()
+	anterior := dominioInstitucional
+	dominioInstitucional = dominio
+	t.Cleanup(func() { dominioInstitucional = anterior })
 }

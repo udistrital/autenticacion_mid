@@ -31,6 +31,7 @@ const (
 var wso2ISBasePath = beego.AppConfig.String("Wso2IsService")
 var wso2IsSecret = beego.AppConfig.String("Wso2IsSecret")
 var wso2IsClient = beego.AppConfig.String("Wso2IsClient")
+var dominioInstitucional = beego.AppConfig.String("DominioInstitucional")
 
 type scimUser struct {
 	ID       string `json:"id"`
@@ -122,8 +123,8 @@ var (
 )
 
 // GetGruposUsuario devuelve los datos y grupos del usuario en IS 7.3 por
-// correo o nombre de usuario, o nil si no coincide una sola cuenta. Si
-// varias cuentas comparten el correo, se usa la del usuario del token.
+// correo o nombre de usuario, o nil si no coincide una sola cuenta. Si varias
+// cuentas comparten el correo, usa la del token o, si no hay, la del correo.
 func GetGruposUsuario(ctx context.Context, usuario string) (*Usuario, error) {
 	atributo := "userName"
 	if strings.Contains(usuario, "@") {
@@ -142,15 +143,14 @@ func GetGruposUsuario(ctx context.Context, usuario string) (*Usuario, error) {
 	cuenta := &usuarios[0]
 	if len(usuarios) > 1 {
 		sub, _ := ctx.Value(auditoriaUserKey).(string)
-		if sub == "" {
-			logs.Warning("%d cuentas tienen el email %s y el token no tiene usuario: usuario no registrado", len(usuarios), usuario)
+		if cuenta = cuentaDelToken(sub, usuarios); cuenta != nil {
+			logs.Info("%d cuentas tienen el email %s: se usa %s (%s), la del token", len(usuarios), usuario, cuenta.UserName, cuenta.ID)
+		} else if cuenta = cuentaDelCorreo(usuario, usuarios); cuenta != nil {
+			logs.Info("%d cuentas tienen el email %s: se usa %s (%s), la del correo", len(usuarios), usuario, cuenta.UserName, cuenta.ID)
+		} else {
+			logs.Warning("%d cuentas tienen el email %s y ninguna es la del token (%s) ni la del correo: usuario no registrado", len(usuarios), usuario, sub)
 			return nil, nil
 		}
-		if cuenta = cuentaDelToken(sub, usuarios); cuenta == nil {
-			logs.Warning("%d cuentas tienen el email %s y ninguna es la del token (%s): usuario no registrado", len(usuarios), usuario, sub)
-			return nil, nil
-		}
-		logs.Info("%d cuentas tienen el email %s: se usa %s (%s), la del token", len(usuarios), usuario, cuenta.UserName, cuenta.ID)
 	}
 
 	return toUsuario(*cuenta), nil
@@ -239,6 +239,9 @@ func ClientCredentialsRequest(ctx context.Context, clientID, clientSecret, scope
 // IS puede anteponer PRIMARY/ y agregar @carbon.super. Los inicios de sesión
 // federados no coinciden con ninguna cuenta.
 func cuentaDelToken(sub string, usuarios []scimUser) *scimUser {
+	if sub == "" {
+		return nil
+	}
 	nombre := sub
 	if i := strings.Index(nombre, "/"); i >= 0 && strings.EqualFold(nombre[:i], "PRIMARY") {
 		nombre = nombre[i+1:]
@@ -256,6 +259,29 @@ func cuentaDelToken(sub string, usuarios []scimUser) *scimUser {
 	}
 
 	return nil
+}
+
+// cuentaDelCorreo devuelve la única cuenta con documento cuyo nombre de usuario
+// es la parte del correo institucional antes de la @, o nil.
+func cuentaDelCorreo(correo string, usuarios []scimUser) *scimUser {
+	i := strings.LastIndex(correo, "@")
+	if dominioInstitucional == "" || i <= 0 || !strings.EqualFold(correo[i+1:], dominioInstitucional) {
+		return nil
+	}
+	nombre := correo[:i]
+
+	var cuenta *scimUser
+	for i := range usuarios {
+		u := &usuarios[i]
+		if !strings.EqualFold(u.UserName, nombre) || u.Custom.Documento == "" {
+			continue
+		}
+		if cuenta != nil {
+			return nil
+		}
+		cuenta = u
+	}
+	return cuenta
 }
 
 // GrupoConRoles indica si el grupo tiene roles asignados. Falla con
