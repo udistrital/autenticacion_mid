@@ -10,10 +10,10 @@ import (
 )
 
 func TestGrupoNoGestionable(t *testing.T) {
-	_, _, err := AgregarGrupo(context.Background(), "user@udistrital.edu.co", "Internal/otro")
+	_, _, err := AgregarGrupo(context.Background(), "user@ejemplo.edu.co", "Internal/otro")
 	assert.ErrorIs(t, err, ErrGrupoNoGestionable)
 
-	_, _, err = QuitarGrupo(context.Background(), "user@udistrital.edu.co", "Internal/otro")
+	_, _, err = QuitarGrupo(context.Background(), "user@ejemplo.edu.co", "Internal/otro")
 	assert.ErrorIs(t, err, ErrGrupoNoGestionable)
 }
 

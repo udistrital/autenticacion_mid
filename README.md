@@ -25,6 +25,8 @@ Todos bajo `/v1`. La documentación completa está en `swagger/`.
 
 Los roles de un usuario son `Internal/everyone`, `Internal/selfsignup` si tiene ese rol en IS, sus grupos en IS y `ESTUDIANTE` si su correo es de un estudiante. Asignar o quitar un rol agrega o quita al usuario del grupo con ese nombre.
 
+Si varias cuentas de IS tienen el correo consultado, se usa la del usuario del token. Si el token no es de ninguna (un ingreso con Google o Microsoft, o un token sin usuario) y el correo es institucional (del dominio `DOMINIO_INSTITUCIONAL`), se usa la cuenta cuyo nombre de usuario es la parte del correo antes de la @ y que tiene documento, si hay exactamente una. Si no, el usuario no está registrado.
+
 Los grupos que tienen roles de IS asignados (de la Consola o de una aplicación) dan accesos que se administran en IS: no se devuelven como roles del usuario, y no se pueden asignar ni quitar, como los roles `Internal/*` y `Application/*` (el MID responde 400).
 
 El MID guarda en memoria durante 10 minutos si cada grupo tiene roles, así que un cambio en los roles de un grupo puede tardar hasta 10 minutos en reflejarse. Si no puede consultar un grupo, lo omite de los roles del usuario y lo vuelve a consultar en la siguiente petición.
@@ -43,6 +45,7 @@ WSO2_IS_URL:                 [URL base de WSO2 Identity Server]
 CODE_BY_EMAIL_STUDENT_URL:   [Servicio de consulta de estudiantes por correo]
 HISTORICO_ROLES_SERVICE:     [Servicio del histórico de roles de los usuarios]
 TERCEROS_SERVICE:            [Servicio de terceros]
+DOMINIO_INSTITUCIONAL:       [Dominio del correo institucional, p. ej. ejemplo.edu.co]
 ```
 
 Las variables están en `conf/app.conf`.
@@ -74,7 +77,7 @@ go test ./scim/ ./services/ ./controllers/
 `tests/controllers` prueba los endpoints contra la API en ejecución en `localhost`, con el puerto de `conf/app.conf`. Las pruebas de `/rol` asignan y quitan un rol a un usuario, y al terminar le devuelven el estado que tenía:
 
 ```
-TEST_USUARIO=usuario@udistrital.edu.co TEST_ROL=ROL TEST_CORREO_ESTUDIANTE=estudiante@udistrital.edu.co TEST_DOCUMENTO=123456 go test -count=1 ./tests/...
+TEST_USUARIO=usuario@ejemplo.edu.co TEST_ROL=ROL TEST_CORREO_ESTUDIANTE=estudiante@ejemplo.edu.co TEST_DOCUMENTO=123456 go test -count=1 ./tests/...
 ```
 
 ## Licencia
