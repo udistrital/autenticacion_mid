@@ -19,9 +19,9 @@ func GetPeriodoUsuario(ctx context.Context, documento string, query map[string]s
 	var PeriodoUsuario models.MetadataResponse
 	var queryParams []string
 	for k, v := range query {
-		queryParams = append(queryParams, k+"="+v)
+		queryParams = append(queryParams, k+":"+v)
 	}
-	queryString := strings.Join(queryParams, "&")
+	queryString := "query=" + strings.Join(queryParams, ",")
 
 	urlGetPeriodoUsuario := rolesCrudService + "usuarios/" + documento + "/periodos?" + queryString + "&limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset))
 
@@ -54,9 +54,9 @@ func GetAllPeriodos(ctx context.Context, query map[string]string, limit int64, o
 	var response models.MetadataResponse
 	var queryParams []string
 	for k, v := range query {
-		queryParams = append(queryParams, k+"="+v)
+		queryParams = append(queryParams, k+":"+v)
 	}
-	queryString := strings.Join(queryParams, "&")
+	queryString := "query=" + strings.Join(queryParams, ",")
 
 	urlGetPeriodos := rolesCrudService + "periodos-rol-usuarios?" + queryString + "&limit=" + strconv.Itoa(int(limit)) + "&offset=" + strconv.Itoa(int(offset))
 
